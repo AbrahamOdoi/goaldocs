@@ -43,6 +43,14 @@
     </li>
 
 
+    <!-- Files Menu -->
+    <li class="menu-item">
+      <a href="{{ route('files.index') }}" class="menu-link">
+        <i class="menu-icon tf-icons ti ti-files"></i>
+        <div data-i18n="Files">Files</div>
+      </a>
+    </li>
+
     <!-- Apps & Pages -->
     <li class="menu-header small text-uppercase">
       <span class="menu-header-text" data-i18n="Setups">Setups</span>

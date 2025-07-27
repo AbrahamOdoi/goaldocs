@@ -431,6 +431,12 @@
           <li>
             <div class="dropdown-divider"></div>
           </li>
+          <li>
+            <a class="dropdown-item" href="{{ route('files.index') }}">
+              <i class="ti ti-files me-2 ti-sm"></i>
+              <span class="align-middle">Files</span>
+            </a>
+          </li>
           @if(auth()->user()->is_admin)
           <li>
             <a class="dropdown-item" href="{{ route('hierarchy.index') }}">

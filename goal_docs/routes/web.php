@@ -89,4 +89,26 @@ Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class])->
         Route::post('/{user}/toggle-admin', [\App\Http\Controllers\UserManagementController::class, 'toggleAdmin'])->name('toggle-admin');
         Route::post('/{user}/resend-credentials', [\App\Http\Controllers\UserManagementController::class, 'resendCredentials'])->name('resend-credentials');
     });
+
+    // File Management Routes (all authenticated users)
+    Route::prefix('files')->name('files.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\FileController::class, 'index'])->name('index');
+        Route::post('/upload', [\App\Http\Controllers\FileController::class, 'upload'])->name('upload');
+        Route::post('/folders', [\App\Http\Controllers\FileController::class, 'createFolder'])->name('folders.create');
+        Route::get('/search', [\App\Http\Controllers\FileController::class, 'search'])->name('search');
+        Route::get('/{file}/download', [\App\Http\Controllers\FileController::class, 'download'])->name('download');
+        Route::get('/{file}/preview', [\App\Http\Controllers\FileController::class, 'preview'])->name('preview');
+        Route::put('/{file}/rename', [\App\Http\Controllers\FileController::class, 'rename'])->name('rename');
+        Route::put('/{file}/move', [\App\Http\Controllers\FileController::class, 'move'])->name('move');
+        Route::delete('/{file}', [\App\Http\Controllers\FileController::class, 'destroy'])->name('destroy');
+        Route::put('/folders/{folder}/rename', [\App\Http\Controllers\FileController::class, 'renameFolder'])->name('folders.rename');
+        Route::delete('/folders/{folder}', [\App\Http\Controllers\FileController::class, 'deleteFolder'])->name('folders.destroy');
+        
+        // Permission Management Routes
+        Route::get('/permissions', [\App\Http\Controllers\FileController::class, 'getPermissions'])->name('permissions.get');
+        Route::post('/permissions/assign', [\App\Http\Controllers\FileController::class, 'assignPermissions'])->name('permissions.assign');
+        Route::delete('/permissions/remove', [\App\Http\Controllers\FileController::class, 'removePermissions'])->name('permissions.remove');
+        Route::get('/permissions/my', [\App\Http\Controllers\FileController::class, 'getMyPermissions'])->name('permissions.my');
+        Route::post('/permissions/preset', [\App\Http\Controllers\FileController::class, 'applyPreset'])->name('permissions.preset');
+    });
 });

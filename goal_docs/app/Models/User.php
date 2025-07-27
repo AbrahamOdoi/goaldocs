@@ -89,4 +89,12 @@ class User extends Authenticatable
         }
         return '';
     }
+
+    /**
+     * Get file permissions assigned to this user
+     */
+    public function filePermissions()
+    {
+        return $this->morphMany(FilePermission::class, 'assignable');
+    }
 }

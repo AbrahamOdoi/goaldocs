@@ -62,4 +62,12 @@ class Department extends Model
     {
         return $query->where('is_active', true);
     }
+
+    /**
+     * Get file permissions assigned to this department
+     */
+    public function filePermissions()
+    {
+        return $this->morphMany(FilePermission::class, 'assignable');
+    }
 } 

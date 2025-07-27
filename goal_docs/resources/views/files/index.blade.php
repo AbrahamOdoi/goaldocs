@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en" class="light-style layout-navbar-fixed layout-menu-fixed layout-compact" dir="ltr" data-theme="theme-default" data-assets-path="{{ asset('assets') }}/" data-template="vertical-menu-template">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+    <title>File Manager - GoalDocs</title>
+    <meta name="description" content="Manage your files and folders" />
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{{ asset('assets/img/favicon/favicon.ico') }}" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="{{ asset('assets/vendor/fonts/fontawesome.css') }}" />
+    <link rel="stylesheet" href="{{ asset('assets/vendor/fonts/tabler-icons.css') }}" />
+    <link rel="stylesheet" href="{{ asset('assets/vendor/fonts/flag-icons.css') }}" />
+
+    <!-- Core CSS -->
+    <link rel="stylesheet" href="{{ asset('assets/vendor/css/rtl/core.css') }}" />
+    <link rel="stylesheet" href="{{ asset('assets/vendor/css/rtl/theme-default.css') }}" />
+    <link rel="stylesheet" href="{{ asset('assets/css/demo.css') }}" />
+
+    <!-- Vendors CSS -->
+    <link rel="stylesheet" href="{{ asset('assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css') }}" />
+    <link rel="stylesheet" href="{{ asset('assets/vendor/libs/node-waves/node-waves.css') }}" />
+    <link rel="stylesheet" href="{{ asset('assets/vendor/libs/typeahead-js/typeahead.css') }}" />
+
+    <!-- Page CSS -->
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+</head>
+
+<body>
+    <!-- Layout wrapper -->
+    <div class="layout-wrapper layout-content-navbar">
+        <div class="layout-container">
+            <!-- Menu -->
+            @include('partials.sidebar')
+            <!-- / Menu -->
+
+            <!-- Layout container -->
+            <div class="layout-page">
+                <!-- Navbar -->
+                @include('partials.navbar')
+                <!-- / Navbar -->
+
+                <!-- Content wrapper -->
+                <div class="content-wrapper">
+                    <!-- Content -->
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- File Manager Header -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title mb-0">
+                            <i class="ti ti-files me-2"></i>
+                            File Manager
+                        </h5>
+                        <small class="text-muted">
+                            @if(auth()->user()->type === 'individual')
+                                Manage your personal files and folders
+                            @else
+                                Manage your {{ strtolower(auth()->user()->type) }} files and folders
+                            @endif
+                        </small>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createFolderModal">
+                            <i class="ti ti-folder-plus me-1"></i>
+                            New Folder
+                        </button>
+                        <button type="button" class="btn btn-success" onclick="document.getElementById('fileInput').click()">
+                            <i class="ti ti-upload me-1"></i>
+                            Upload Files
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Breadcrumb Navigation -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb breadcrumb-style1">
+                    @foreach($breadcrumbs as $breadcrumb)
+                        @if($loop->last)
+                            <li class="breadcrumb-item active">{{ $breadcrumb['name'] }}</li>
+                        @else
+                            <li class="breadcrumb-item">
+                                <a href="{{ $breadcrumb['url'] }}">{{ $breadcrumb['name'] }}</a>
+                            </li>
+                        @endif
+                    @endforeach
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="ti ti-search"></i></span>
+                        <input type="text" class="form-control" id="searchInput" placeholder="Search files and folders...">
+                        <button class="btn btn-outline-secondary" type="button" id="searchButton">Search</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Upload Dropzone -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div id="dropzone" class="card border-dashed border-primary d-none">
+                <div class="card-body text-center py-5">
+                    <i class="ti ti-cloud-upload display-1 text-primary mb-3"></i>
+                    <h4 class="text-primary">Drop files here to upload</h4>
+                    <p class="text-muted">Or click the upload button above</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Browser -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    @if($folders->isEmpty() && $files->isEmpty())
+                        <div class="text-center py-5">
+                            <i class="ti ti-folder-off display-1 text-muted mb-3"></i>
+                            <h4 class="text-muted">This folder is empty</h4>
+                            <p class="text-muted">Create a new folder or upload files to get started</p>
+                        </div>
+                    @else
+                        <!-- Folders -->
+                        @if($folders->isNotEmpty())
+                            <h6 class="text-uppercase text-muted mb-3">
+                                <i class="ti ti-folders me-1"></i>
+                                Folders ({{ $folders->count() }})
+                            </h6>
+                            <div class="row mb-4">
+                                @foreach($folders as $folder)
+                                    <div class="col-xxl-2 col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+                                        <div class="card folder-card h-100" data-folder-id="{{ $folder->id }}">
+                                            <div class="card-body text-center p-3">
+                                                <div class="dropdown position-absolute top-0 end-0 mt-2 me-2">
+                                                    <button class="btn btn-sm btn-icon" type="button" data-bs-toggle="dropdown">
+                                                        <i class="ti ti-dots-vertical"></i>
+                                                    </button>
+                                                    <ul class="dropdown-menu">
+                                                        <li><a class="dropdown-item" href="#" onclick="renameFolder({{ $folder->id }}, '{{ $folder->name }}')">
+                                                            <i class="ti ti-edit me-2"></i>Rename
+                                                        </a></li>
+                                                        <li><a class="dropdown-item" href="#" onclick="managePermissions('folder', {{ $folder->id }}, '{{ $folder->name }}')">
+                                                            <i class="ti ti-lock me-2"></i>Permissions
+                                                        </a></li>
+                                                        <li><hr class="dropdown-divider"></li>
+                                                        <li><a class="dropdown-item text-danger" href="#" onclick="deleteFolder({{ $folder->id }})">
+                                                            <i class="ti ti-trash me-2"></i>Delete
+                                                        </a></li>
+                                                    </ul>
+                                                </div>
+                                                <a href="{{ route('files.index', ['folder' => $folder->id]) }}" class="text-decoration-none">
+                                                    <i class="ti ti-folder text-warning display-1 mb-3"></i>
+                                                    <h6 class="card-title text-truncate">{{ $folder->name }}</h6>
+                                                    <small class="text-muted">{{ $folder->activeFiles->count() + $folder->activeChildren->count() }} items</small>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        <!-- Files -->
+                        @if($files->isNotEmpty())
+                            <h6 class="text-uppercase text-muted mb-3">
+                                <i class="ti ti-files me-1"></i>
+                                Files ({{ $files->count() }})
+                            </h6>
+                            <div class="row">
+                                @foreach($files as $file)
+                                    <div class="col-xxl-2 col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+                                        <div class="card file-card h-100" data-file-id="{{ $file->id }}">
+                                            <div class="card-body text-center p-3">
+                                                <div class="dropdown position-absolute top-0 end-0 mt-2 me-2">
+                                                    <button class="btn btn-sm btn-icon" type="button" data-bs-toggle="dropdown">
+                                                        <i class="ti ti-dots-vertical"></i>
+                                                    </button>
+                                                    <ul class="dropdown-menu">
+                                                        <li><a class="dropdown-item" href="{{ $file->download_url }}">
+                                                            <i class="ti ti-download me-2"></i>Download
+                                                        </a></li>
+                                                        @if($file->is_image || $file->is_document)
+                                                            <li><a class="dropdown-item" href="{{ $file->preview_url }}" target="_blank">
+                                                                <i class="ti ti-eye me-2"></i>Preview
+                                                            </a></li>
+                                                        @endif
+                                                        <li><a class="dropdown-item" href="#" onclick="renameFile({{ $file->id }}, '{{ $file->name }}')">
+                                                            <i class="ti ti-edit me-2"></i>Rename
+                                                        </a></li>
+                                                        <li><a class="dropdown-item" href="#" onclick="moveFile({{ $file->id }})">
+                                                            <i class="ti ti-folder-symlink me-2"></i>Move
+                                                        </a></li>
+                                                        <li><a class="dropdown-item" href="#" onclick="managePermissions('file', {{ $file->id }}, '{{ $file->name }}')">
+                                                            <i class="ti ti-lock me-2"></i>Permissions
+                                                        </a></li>
+                                                        <li><hr class="dropdown-divider"></li>
+                                                        <li><a class="dropdown-item text-danger" href="#" onclick="deleteFile({{ $file->id }})">
+                                                            <i class="ti ti-trash me-2"></i>Delete
+                                                        </a></li>
+                                                    </ul>
+                                                </div>
+                                                
+                                                @if($file->is_image)
+                                                    <img src="{{ $file->preview_url }}" alt="{{ $file->name }}" class="img-fluid rounded mb-2" style="max-height: 80px; object-fit: cover;">
+                                                @else
+                                                    <i class="{{ $file->icon }} text-primary display-1 mb-3"></i>
+                                                @endif
+                                                
+                                                <h6 class="card-title text-truncate" title="{{ $file->name }}">{{ $file->name }}</h6>
+                                                <small class="text-muted d-block">{{ $file->human_size }}</small>
+                                                <small class="text-muted">{{ $file->updated_at->diffForHumans() }}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden File Input -->
+<input type="file" id="fileInput" multiple style="display: none;" accept="*/*">
+
+<!-- Create Folder Modal -->
+<div class="modal fade" id="createFolderModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create New Folder</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="createFolderForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="folderName" class="form-label">Folder Name</label>
+                        <input type="text" class="form-control" id="folderName" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="folderDescription" class="form-label">Description (Optional)</label>
+                        <textarea class="form-control" id="folderDescription" name="description" rows="3"></textarea>
+                    </div>
+                    <input type="hidden" name="parent_folder_id" value="{{ $currentFolder->id ?? '' }}">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Folder</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Permission Management Modal -->
+<div class="modal fade" id="permissionModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="ti ti-lock me-2"></i>
+                    Manage Permissions: <span id="permissionResourceName"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Current Permissions -->
+                <div class="mb-4">
+                    <h6 class="text-uppercase text-muted mb-3">Current Permissions</h6>
+                    <div id="currentPermissions" class="mb-3">
+                        <div class="text-center text-muted py-3">
+                            <i class="ti ti-users-off display-1 mb-2"></i>
+                            <p>No permissions assigned yet</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Add Permission Form -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Add New Permission</h6>
+                    </div>
+                    <div class="card-body">
+                        <form id="addPermissionForm">
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Assign To</label>
+                                    <select class="form-select" id="assignableType" name="assignable_type" required>
+                                        <option value="">Select type...</option>
+                                        <option value="user">User</option>
+                                        <option value="position">Position</option>
+                                        <option value="department">Department</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Select Entity</label>
+                                    <select class="form-select" id="assignableId" name="assignable_id" required disabled>
+                                        <option value="">Select entity...</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Permission Level</label>
+                                    <select class="form-select" id="permissionPreset" name="preset">
+                                        <option value="">Custom permissions...</option>
+                                        <option value="view_only">View Only</option>
+                                        <option value="read_download">Read & Download</option>
+                                        <option value="contributor">Contributor</option>
+                                        <option value="editor">Editor</option>
+                                        <option value="full_access">Full Access</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Custom Permissions -->
+                            <div id="customPermissions" class="mb-3">
+                                <label class="form-label">Custom Permissions</label>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="permView" name="permissions[view]">
+                                            <label class="form-check-label" for="permView">
+                                                <i class="ti ti-eye me-1"></i>View
+                                            </label>
+                                        </div>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="permDownload" name="permissions[download]">
+                                            <label class="form-check-label" for="permDownload">
+                                                <i class="ti ti-download me-1"></i>Download
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="permEdit" name="permissions[edit]">
+                                            <label class="form-check-label" for="permEdit">
+                                                <i class="ti ti-edit me-1"></i>Edit
+                                            </label>
+                                        </div>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="permUpload" name="permissions[upload]">
+                                            <label class="form-check-label" for="permUpload">
+                                                <i class="ti ti-upload me-1"></i>Upload
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="permDelete" name="permissions[delete]">
+                                            <label class="form-check-label" for="permDelete">
+                                                <i class="ti ti-trash me-1"></i>Delete
+                                            </label>
+                                        </div>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="permReshare" name="permissions[reshare]">
+                                            <label class="form-check-label" for="permReshare">
+                                                <i class="ti ti-share me-1"></i>Reshare
+                                            </label>
+                                        </div>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="permManage" name="permissions[manage]">
+                                            <label class="form-check-label" for="permManage">
+                                                <i class="ti ti-settings me-1"></i>Manage
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Notes (Optional)</label>
+                                <textarea class="form-control" id="permissionNotes" name="notes" rows="2" placeholder="Add any notes about this permission assignment..."></textarea>
+                            </div>
+
+                            <input type="hidden" id="resourceType" name="resource_type">
+                            <input type="hidden" id="resourceId" name="resource_id">
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="addPermission()">Add Permission</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="position-fixed top-0 start-0 w-100 h-100 d-none" style="background: rgba(0,0,0,0.5); z-index: 9999;">
+    <div class="d-flex justify-content-center align-items-center h-100">
+        <div class="text-center text-white">
+            <div class="spinner-border mb-3" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <h5>Processing...</h5>
+        </div>
+    </div>
+</div>
+
+                    <!-- / Content -->
+                    
+                    <!-- Footer -->
+                    <footer class="content-footer footer bg-footer-theme">
+                        <div class="container-xxl">
+                            <div class="footer-container d-flex align-items-center justify-content-between py-2 flex-md-row flex-column">
+                                <div>
+                                    © <script>document.write(new Date().getFullYear())</script>
+                                    , made with ❤️ by <a href="#" target="_blank" class="fw-semibold">GoalDocs</a>
+                                </div>
+                            </div>
+                        </div>
+                    </footer>
+                    <!-- / Footer -->
+
+                    <div class="content-backdrop fade"></div>
+                </div>
+                <!-- Content wrapper -->
+            </div>
+            <!-- / Layout page -->
+        </div>
+
+        <!-- Overlay -->
+        <div class="layout-overlay layout-menu-toggle"></div>
+
+        <!-- Drag Target Area To SlideIn Menu On Small Screens -->
+        <div class="drag-target"></div>
+    </div>
+    <!-- / Layout wrapper -->
+
+    <!-- Core JS -->
+    <script src="{{ asset('assets/vendor/libs/jquery/jquery.js') }}"></script>
+    <script src="{{ asset('assets/vendor/libs/popper/popper.js') }}"></script>
+    <script src="{{ asset('assets/vendor/js/bootstrap.js') }}"></script>
+    <script src="{{ asset('assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js') }}"></script>
+    <script src="{{ asset('assets/vendor/libs/node-waves/node-waves.js') }}"></script>
+    <script src="{{ asset('assets/vendor/libs/hammer/hammer.js') }}"></script>
+    <script src="{{ asset('assets/vendor/libs/i18n/i18n.js') }}"></script>
+    <script src="{{ asset('assets/vendor/libs/typeahead-js/typeahead.js') }}"></script>
+    <script src="{{ asset('assets/vendor/js/menu.js') }}"></script>
+
+    <!-- Main JS -->
+    <script src="{{ asset('assets/js/main.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // File input handler
+    const fileInput = document.getElementById('fileInput');
+    const dropzone = document.getElementById('dropzone');
+    
+    fileInput.addEventListener('change', function(e) {
+        if (e.target.files.length > 0) {
+            uploadFiles(e.target.files);
+        }
+    });
+
+    // Drag and drop functionality
+    let dragCounter = 0;
+
+    document.addEventListener('dragenter', function(e) {
+        e.preventDefault();
+        dragCounter++;
+        dropzone.classList.remove('d-none');
+    });
+
+    document.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        dragCounter--;
+        if (dragCounter === 0) {
+            dropzone.classList.add('d-none');
+        }
+    });
+
+    document.addEventListener('dragover', function(e) {
+        e.preventDefault();
+    });
+
+    document.addEventListener('drop', function(e) {
+        e.preventDefault();
+        dragCounter = 0;
+        dropzone.classList.add('d-none');
+        
+        if (e.dataTransfer.files.length > 0) {
+            uploadFiles(e.dataTransfer.files);
+        }
+    });
+
+    // Create folder form
+    document.getElementById('createFolderForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        createFolder();
+    });
+
+    // Search functionality
+    document.getElementById('searchButton').addEventListener('click', function() {
+        performSearch();
+    });
+
+    document.getElementById('searchInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            performSearch();
+        }
+    });
+});
+
+function uploadFiles(files) {
+    const formData = new FormData();
+    const currentFolderId = '{{ $currentFolder->id ?? "" }}';
+    
+    for (let i = 0; i < files.length; i++) {
+        formData.append('files[]', files[i]);
+    }
+    
+    if (currentFolderId) {
+        formData.append('folder_id', currentFolderId);
+    }
+    
+    showLoading();
+    
+    fetch('{{ route("files.upload") }}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideLoading();
+        if (data.success) {
+            showAlert('success', data.message);
+            location.reload();
+        } else {
+            showAlert('error', data.error || 'Upload failed');
+            if (data.errors && data.errors.length > 0) {
+                data.errors.forEach(error => {
+                    showAlert('warning', error);
+                });
+            }
+        }
+    })
+    .catch(error => {
+        hideLoading();
+        showAlert('error', 'Upload failed: ' + error.message);
+    });
+}
+
+function createFolder() {
+    const form = document.getElementById('createFolderForm');
+    const formData = new FormData(form);
+    
+    fetch('{{ route("files.folders.create") }}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+            location.reload();
+        } else {
+            showAlert('error', data.error);
+        }
+    })
+    .catch(error => {
+        showAlert('error', 'Failed to create folder');
+    });
+}
+
+function renameFile(fileId, currentName) {
+    const newName = prompt('Enter new name:', currentName);
+    if (newName && newName !== currentName) {
+        fetch(`/files/${fileId}/rename`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({ name: newName })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', data.message);
+                location.reload();
+            } else {
+                showAlert('error', data.error);
+            }
+        });
+    }
+}
+
+function renameFolder(folderId, currentName) {
+    const newName = prompt('Enter new name:', currentName);
+    if (newName && newName !== currentName) {
+        fetch(`/files/folders/${folderId}/rename`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({ name: newName })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', data.message);
+                location.reload();
+            } else {
+                showAlert('error', data.error);
+            }
+        });
+    }
+}
+
+function deleteFile(fileId) {
+    if (confirm('Are you sure you want to delete this file? This action cannot be undone.')) {
+        fetch(`/files/${fileId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', data.message);
+                location.reload();
+            } else {
+                showAlert('error', data.error);
+            }
+        });
+    }
+}
+
+function deleteFolder(folderId) {
+    if (confirm('Are you sure you want to delete this folder? This action cannot be undone.')) {
+        fetch(`/files/folders/${folderId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', data.message);
+                location.reload();
+            } else {
+                showAlert('error', data.error);
+            }
+        });
+    }
+}
+
+function performSearch() {
+    const query = document.getElementById('searchInput').value.trim();
+    if (query.length === 0) {
+        return;
+    }
+    
+    fetch(`{{ route('files.search') }}?q=${encodeURIComponent(query)}`)
+    .then(response => response.json())
+    .then(data => {
+        displaySearchResults(data);
+    })
+    .catch(error => {
+        showAlert('error', 'Search failed');
+    });
+}
+
+function displaySearchResults(results) {
+    // This would update the UI with search results
+    // For now, we'll just show an alert with the count
+    const totalResults = results.files.length + results.folders.length;
+    showAlert('info', `Found ${totalResults} results`);
+}
+
+function showLoading() {
+    document.getElementById('loadingOverlay').classList.remove('d-none');
+}
+
+function hideLoading() {
+    document.getElementById('loadingOverlay').classList.add('d-none');
+}
+
+function showAlert(type, message) {
+    // Create alert element
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 10000; min-width: 300px;';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+
+// Permission Management Functions
+let currentPermissionData = {};
+
+function managePermissions(resourceType, resourceId, resourceName) {
+    currentPermissionData = {
+        type: resourceType,
+        id: resourceId,
+        name: resourceName
+    };
+    
+    document.getElementById('permissionResourceName').textContent = resourceName;
+    document.getElementById('resourceType').value = resourceType;
+    document.getElementById('resourceId').value = resourceId;
+    
+    // Load current permissions
+    loadPermissions(resourceType, resourceId);
+    
+    // Show modal
+    new bootstrap.Modal(document.getElementById('permissionModal')).show();
+}
+
+function loadPermissions(resourceType, resourceId) {
+    showLoading();
+    
+    fetch(`{{ route('files.permissions.get') }}?resource_type=${resourceType}&resource_id=${resourceId}`)
+    .then(response => response.json())
+    .then(data => {
+        hideLoading();
+        if (data.error) {
+            showAlert('error', data.error);
+            return;
+        }
+        
+        displayCurrentPermissions(data.permissions);
+        populateAssignableEntities(data.assignable_entities);
+    })
+    .catch(error => {
+        hideLoading();
+        showAlert('error', 'Failed to load permissions');
+    });
+}
+
+function displayCurrentPermissions(permissions) {
+    const container = document.getElementById('currentPermissions');
+    
+    if (permissions.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-muted py-3">
+                <i class="ti ti-users-off display-1 mb-2"></i>
+                <p>No permissions assigned yet</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    permissions.forEach(permission => {
+        const assignableName = permission.assignable.name || permission.assignable.type_name || 'Unknown';
+        const assignableType = permission.assignable_type.split('\\').pop();
+        
+        html += `
+            <div class="d-flex justify-content-between align-items-center border rounded p-3 mb-2">
+                <div>
+                    <h6 class="mb-1">
+                        <i class="ti ti-${getAssignableIcon(assignableType)} me-2"></i>
+                        ${assignableName}
+                    </h6>
+                    <small class="text-muted">${assignableType} • ${permission.permission_level}</small>
+                </div>
+                <div class="d-flex gap-2">
+                    <span class="badge bg-label-primary">${getPermissionSummary(permission.permissions)}</span>
+                    <button class="btn btn-sm btn-outline-danger" onclick="removePermission('${permission.assignable_type}', ${permission.assignable_id})">
+                        <i class="ti ti-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+function getAssignableIcon(type) {
+    switch(type.toLowerCase()) {
+        case 'user': return 'user';
+        case 'position': return 'briefcase';
+        case 'department': return 'building';
+        default: return 'users';
+    }
+}
+
+function getPermissionSummary(permissions) {
+    const activePerms = Object.keys(permissions).filter(key => permissions[key]);
+    return activePerms.length + ' permissions';
+}
+
+function populateAssignableEntities(entities) {
+    currentPermissionData.entities = entities;
+    
+    // Setup assignable type change handler
+    document.getElementById('assignableType').addEventListener('change', function() {
+        const type = this.value;
+        const entitySelect = document.getElementById('assignableId');
+        
+        entitySelect.innerHTML = '<option value="">Select entity...</option>';
+        entitySelect.disabled = !type;
+        
+        if (type && entities[type + 's']) {
+            entities[type + 's'].forEach(entity => {
+                const name = entity.name || entity.type_name || `${entity.first_name} ${entity.last_name}`;
+                entitySelect.innerHTML += `<option value="${entity.id}">${name}</option>`;
+            });
+            entitySelect.disabled = false;
+        }
+    });
+}
+
+function addPermission() {
+    const form = document.getElementById('addPermissionForm');
+    const formData = new FormData(form);
+    
+    // If using preset, don't send custom permissions
+    const preset = formData.get('preset');
+    let requestData;
+    
+    if (preset) {
+        requestData = {
+            resource_type: formData.get('resource_type'),
+            resource_id: formData.get('resource_id'),
+            assignable_type: formData.get('assignable_type'),
+            assignable_id: formData.get('assignable_id'),
+            preset: preset
+        };
+        
+        // Use preset endpoint
+        fetch('{{ route("files.permissions.preset") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify(requestData)
+        })
+        .then(response => response.json())
+        .then(handlePermissionResponse);
+    } else {
+        // Custom permissions
+        const permissions = {};
+        ['view', 'download', 'edit', 'upload', 'delete', 'reshare', 'manage'].forEach(perm => {
+            permissions[perm] = document.getElementById('perm' + perm.charAt(0).toUpperCase() + perm.slice(1)).checked;
+        });
+        
+        requestData = {
+            resource_type: formData.get('resource_type'),
+            resource_id: formData.get('resource_id'),
+            assignable_type: formData.get('assignable_type'),
+            assignable_id: formData.get('assignable_id'),
+            permissions: permissions,
+            notes: formData.get('notes')
+        };
+        
+        fetch('{{ route("files.permissions.assign") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify(requestData)
+        })
+        .then(response => response.json())
+        .then(handlePermissionResponse);
+    }
+}
+
+function handlePermissionResponse(data) {
+    if (data.success) {
+        showAlert('success', data.message);
+        // Reload permissions
+        loadPermissions(currentPermissionData.type, currentPermissionData.id);
+        // Reset form
+        document.getElementById('addPermissionForm').reset();
+        document.getElementById('assignableId').disabled = true;
+    } else {
+        showAlert('error', data.error || 'Failed to assign permission');
+    }
+}
+
+function removePermission(assignableType, assignableId) {
+    if (!confirm('Are you sure you want to remove this permission?')) {
+        return;
+    }
+    
+    const requestData = {
+        resource_type: currentPermissionData.type,
+        resource_id: currentPermissionData.id,
+        assignable_type: assignableType.split('\\').pop().toLowerCase(),
+        assignable_id: assignableId
+    };
+    
+    fetch('{{ route("files.permissions.remove") }}', {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+            loadPermissions(currentPermissionData.type, currentPermissionData.id);
+        } else {
+            showAlert('error', data.error || 'Failed to remove permission');
+        }
+    });
+}
+
+// Permission preset change handler
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('permissionPreset').addEventListener('change', function() {
+        const preset = this.value;
+        const customPermissions = document.getElementById('customPermissions');
+        
+        if (preset) {
+            customPermissions.style.display = 'none';
+        } else {
+            customPermissions.style.display = 'block';
+        }
+    });
+});
+</script>
+
+<style>
+.folder-card:hover, .file-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transition: all 0.2s ease;
+}
+
+.border-dashed {
+    border-style: dashed !important;
+    border-width: 2px !important;
+}
+
+#dropzone {
+    transition: all 0.3s ease;
+}
+
+.card-title {
+    font-size: 0.875rem;
+}
+
+.display-1 {
+    font-size: 3rem !important;
+}
+</style>
+</body>
+</html> 

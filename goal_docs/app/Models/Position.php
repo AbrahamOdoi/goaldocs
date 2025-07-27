@@ -47,4 +47,12 @@ class Position extends Model
     {
         return $query->where('department_id', $departmentId);
     }
+
+    /**
+     * Get file permissions assigned to this position
+     */
+    public function filePermissions()
+    {
+        return $this->morphMany(FilePermission::class, 'assignable');
+    }
 } 
