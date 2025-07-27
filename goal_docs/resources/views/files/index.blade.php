@@ -31,6 +31,17 @@
     <link rel="stylesheet" href="{{ asset('assets/vendor/libs/typeahead-js/typeahead.css') }}" />
 
     <!-- Page CSS -->
+    
+    <!-- Load jQuery first to avoid conflicts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Essential head scripts only -->
+    <script>
+        // Minimal config to avoid conflicts
+        window.templateCustomizer = window.templateCustomizer || {};
+        window.config = window.config || { assets: { path: '{{ asset("assets") }}/' } };
+    </script>
+    
     <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 
@@ -156,7 +167,7 @@
                                         <div class="card folder-card h-100" data-folder-id="{{ $folder->id }}">
                                             <div class="card-body text-center p-3">
                                                 <div class="dropdown position-absolute top-0 end-0 mt-2 me-2">
-                                                    <button class="btn btn-sm btn-icon" type="button" data-bs-toggle="dropdown">
+                                                    <button class="btn btn-sm btn-icon dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                                         <i class="ti ti-dots-vertical"></i>
                                                     </button>
                                                     <ul class="dropdown-menu">
@@ -196,7 +207,7 @@
                                         <div class="card file-card h-100" data-file-id="{{ $file->id }}">
                                             <div class="card-body text-center p-3">
                                                 <div class="dropdown position-absolute top-0 end-0 mt-2 me-2">
-                                                    <button class="btn btn-sm btn-icon" type="button" data-bs-toggle="dropdown">
+                                                    <button class="btn btn-sm btn-icon dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                                         <i class="ti ti-dots-vertical"></i>
                                                     </button>
                                                     <ul class="dropdown-menu">
@@ -315,7 +326,36 @@
                                         <option value="">Select type...</option>
                                         <option value="user">User</option>
                                         <option value="position">Position</option>
-                                        <option value="department">Department</option>
+                                        @if(Auth::user()->type !== 'individual')
+                                            @switch(Auth::user()->type)
+                                                @case('family')
+                                                    <option value="role">Role</option>
+                                                    @break
+                                                @case('government')
+                                                    <option value="agency">Agency</option>
+                                                    @break
+                                                @case('social_group')
+                                                    <option value="group">Group</option>
+                                                    @break
+                                                @case('professional_group')
+                                                    <option value="division">Division</option>
+                                                    @break
+                                                @case('educational_institution')
+                                                    <option value="department">Department</option>
+                                                    @break
+                                                @case('non_profit')
+                                                    <option value="department">Department</option>
+                                                    @break
+                                                @case('organisation')
+                                                    <option value="department">Department</option>
+                                                    @break
+                                                @default
+                                                    <option value="department">Department</option>
+                                            @endswitch
+                                        @else
+                                            {{-- Individual users can assign to categories if they have any --}}
+                                            <option value="category">Category</option>
+                                        @endif
                                     </select>
                                 </div>
                                 <div class="col-md-4 mb-3">
@@ -453,19 +493,11 @@
     </div>
     <!-- / Layout wrapper -->
 
-    <!-- Core JS -->
-    <script src="{{ asset('assets/vendor/libs/jquery/jquery.js') }}"></script>
-    <script src="{{ asset('assets/vendor/libs/popper/popper.js') }}"></script>
-    <script src="{{ asset('assets/vendor/js/bootstrap.js') }}"></script>
-    <script src="{{ asset('assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js') }}"></script>
-    <script src="{{ asset('assets/vendor/libs/node-waves/node-waves.js') }}"></script>
-    <script src="{{ asset('assets/vendor/libs/hammer/hammer.js') }}"></script>
-    <script src="{{ asset('assets/vendor/libs/i18n/i18n.js') }}"></script>
-    <script src="{{ asset('assets/vendor/libs/typeahead-js/typeahead.js') }}"></script>
+    <!-- Bootstrap JS only (jQuery already loaded in head) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Menu JS for sidebar functionality -->
     <script src="{{ asset('assets/vendor/js/menu.js') }}"></script>
-
-    <!-- Main JS -->
-    <script src="{{ asset('assets/js/main.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // File input handler
@@ -830,27 +862,63 @@ function getPermissionSummary(permissions) {
 function populateAssignableEntities(entities) {
     currentPermissionData.entities = entities;
     
-    // Setup assignable type change handler
-    document.getElementById('assignableType').addEventListener('change', function() {
-        const type = this.value;
-        const entitySelect = document.getElementById('assignableId');
+    // Remove existing event listeners to prevent conflicts
+    const assignableTypeSelect = document.getElementById('assignableType');
+    if (assignableTypeSelect) {
+        // Clone the element to remove all event listeners
+        const newElement = assignableTypeSelect.cloneNode(true);
+        assignableTypeSelect.parentNode.replaceChild(newElement, assignableTypeSelect);
         
-        entitySelect.innerHTML = '<option value="">Select entity...</option>';
-        entitySelect.disabled = !type;
-        
-        if (type && entities[type + 's']) {
-            entities[type + 's'].forEach(entity => {
-                const name = entity.name || entity.type_name || `${entity.first_name} ${entity.last_name}`;
-                entitySelect.innerHTML += `<option value="${entity.id}">${name}</option>`;
-            });
-            entitySelect.disabled = false;
-        }
-    });
+        // Add fresh event listener
+        document.getElementById('assignableType').addEventListener('change', function() {
+            const type = this.value;
+            const entitySelect = document.getElementById('assignableId');
+            
+            entitySelect.innerHTML = '<option value="">Select entity...</option>';
+            entitySelect.disabled = !type;
+            
+            if (type) {
+                // Map the dropdown value to the correct entity array key
+                let entityKey;
+                if (type === 'user') {
+                    entityKey = 'users';
+                } else if (type === 'position') {
+                    entityKey = 'positions';
+                } else {
+                    // For departments/roles/agencies/etc., find the correct key
+                    entityKey = Object.keys(entities).find(key => 
+                        key !== 'users' && key !== 'positions'
+                    );
+                }
+                
+                if (entityKey && entities[entityKey]) {
+                    entities[entityKey].forEach(entity => {
+                        const name = entity.name || entity.type_name || `${entity.first_name} ${entity.last_name}`;
+                        entitySelect.innerHTML += `<option value="${entity.id}">${name}</option>`;
+                    });
+                    entitySelect.disabled = false;
+                }
+            }
+        });
+    }
 }
 
 function addPermission() {
     const form = document.getElementById('addPermissionForm');
     const formData = new FormData(form);
+    
+    // Convert assignable_type to correct model class
+    const assignableType = formData.get('assignable_type');
+    const assignableTypeMapping = {
+        'user': 'App\\Models\\User',
+        'position': 'App\\Models\\Position',
+        'department': 'App\\Models\\Department',
+        'role': 'App\\Models\\Department',           // Family
+        'agency': 'App\\Models\\Department',         // Government
+        'group': 'App\\Models\\Department',          // Social Group
+        'division': 'App\\Models\\Department',       // Professional Group
+        'category': 'App\\Models\\Department'        // Individual (though rarely used)
+    };
     
     // If using preset, don't send custom permissions
     const preset = formData.get('preset');
@@ -860,7 +928,7 @@ function addPermission() {
         requestData = {
             resource_type: formData.get('resource_type'),
             resource_id: formData.get('resource_id'),
-            assignable_type: formData.get('assignable_type'),
+            assignable_type: assignableTypeMapping[assignableType] || assignableType,
             assignable_id: formData.get('assignable_id'),
             preset: preset
         };
@@ -886,7 +954,7 @@ function addPermission() {
         requestData = {
             resource_type: formData.get('resource_type'),
             resource_id: formData.get('resource_id'),
-            assignable_type: formData.get('assignable_type'),
+            assignable_type: assignableTypeMapping[assignableType] || assignableType,
             assignable_id: formData.get('assignable_id'),
             permissions: permissions,
             notes: formData.get('notes')
@@ -949,20 +1017,142 @@ function removePermission(assignableType, assignableId) {
     });
 }
 
-// Permission preset change handler
-document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('permissionPreset').addEventListener('change', function() {
-        const preset = this.value;
-        const customPermissions = document.getElementById('customPermissions');
+// File Manager specific dropdown handler (isolated namespace)
+$(document).ready(function() {
+    console.log('File manager dropdowns initializing...');
+         console.log('Found file cards:', $('.file-card').length);
+     console.log('Found folder cards:', $('.folder-card').length);
+     console.log('Found dropdown buttons:', $('.file-card .dropdown button, .folder-card .dropdown button').length);
+     
+     // Manual sidebar menu toggle functionality
+     $(document).on('click', '.menu-toggle', function(e) {
+         e.preventDefault();
+         e.stopPropagation();
+         console.log('Menu toggle clicked');
+         
+         const $this = $(this);
+         const $menuItem = $this.closest('.menu-item');
+         const $submenu = $menuItem.find('> .menu-sub'); // Only direct child submenu
+         
+         console.log('Submenu found:', $submenu.length);
+         console.log('Menu item text:', $this.text().trim());
+         
+         if ($submenu.length > 0) {
+             // Toggle the submenu
+             if ($submenu.is(':visible')) {
+                 $submenu.slideUp(300);
+                 $menuItem.removeClass('open');
+                 console.log('Closing submenu');
+             } else {
+                 // Only close sibling submenus at the same level
+                 $menuItem.siblings('.menu-item').find('> .menu-sub').slideUp(300);
+                 $menuItem.siblings('.menu-item').removeClass('open');
+                 
+                 // Open this submenu
+                 $submenu.slideDown(300);
+                 $menuItem.addClass('open');
+                 console.log('Opening submenu');
+             }
+         }
+     });
+    
+    // Use a more specific selector to avoid conflicts with navbar dropdowns
+    $(document).on('click', '.file-card .dropdown [data-bs-toggle="dropdown"], .folder-card .dropdown [data-bs-toggle="dropdown"]', function(e) {
+        console.log('File dropdown clicked');
+        e.preventDefault();
+        e.stopPropagation();
         
-        if (preset) {
-            customPermissions.style.display = 'none';
-        } else {
-            customPermissions.style.display = 'block';
+        // Close all file/folder dropdowns specifically
+        $('.file-card .dropdown-menu, .folder-card .dropdown-menu').removeClass('show');
+        
+        // Toggle this specific dropdown
+        const menu = $(this).siblings('.dropdown-menu');
+        menu.addClass('show');
+        
+        console.log('Dropdown should be visible now');
+    });
+    
+    // Close file/folder dropdowns when clicking outside
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('.file-card .dropdown, .folder-card .dropdown').length) {
+            $('.file-card .dropdown-menu, .folder-card .dropdown-menu').removeClass('show');
         }
     });
+    
+    // Prevent file/folder dropdown from closing when clicking inside
+    $(document).on('click', '.file-card .dropdown-menu, .folder-card .dropdown-menu', function(e) {
+        e.stopPropagation();
+    });
+    
+    // Permission preset handler
+    $(document).on('change', '#permissionPreset', function() {
+        const preset = $(this).val();
+        const customPermissions = $('#customPermissions');
+        
+        if (preset) {
+            customPermissions.hide();
+        } else {
+            customPermissions.show();
+        }
+    });
+    
+         // Simple click handler for all dropdown buttons
+     $(document).on('click', '.folder-card button[data-bs-toggle="dropdown"], .file-card button[data-bs-toggle="dropdown"]', function(e) {
+         console.log('Simple click handler triggered');
+         e.preventDefault();
+         e.stopPropagation();
+         
+         // Hide all other dropdowns
+         $('.dropdown-menu').removeClass('show');
+         
+         // Show this dropdown
+         const dropdown = $(this).next('.dropdown-menu');
+         dropdown.addClass('show');
+         console.log('Dropdown should now be visible');
+     });
+     
+     // Alternative: Direct click handlers (backup method)
+     $('.file-card .dropdown button, .folder-card .dropdown button').each(function() {
+         $(this).off('click.filemanager').on('click.filemanager', function(e) {
+             console.log('Direct button click');
+             e.preventDefault();
+             e.stopPropagation();
+             
+             // Close all dropdowns
+             $('.file-card .dropdown-menu, .folder-card .dropdown-menu').removeClass('show');
+             
+             // Find and show this dropdown menu
+             const menu = $(this).siblings('.dropdown-menu');
+             console.log('Found menu:', menu.length);
+             console.log('Menu HTML:', menu.html());
+             
+             if (menu.length > 0) {
+                 menu.addClass('show');
+                 console.log('Added show class, menu should be visible');
+                 console.log('Menu display style:', menu.css('display'));
+                 console.log('Menu has show class:', menu.hasClass('show'));
+             } else {
+                 console.log('No menu found - checking parent structure');
+                 console.log('Button parent:', $(this).parent().html());
+             }
+         });
+     });
 });
 </script>
+
+<!-- Core JS -->
+<script src="{{ asset('assets/vendor/libs/jquery/jquery.js') }}"></script>
+<script src="{{ asset('assets/vendor/libs/popper/popper.js') }}"></script>
+<script src="{{ asset('assets/vendor/js/bootstrap.js') }}"></script>
+<script src="{{ asset('assets/vendor/libs/node-waves/node-waves.js') }}"></script>
+<script src="{{ asset('assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js') }}"></script>
+<script src="{{ asset('assets/vendor/libs/hammer/hammer.js') }}"></script>
+<script src="{{ asset('assets/vendor/libs/i18n/i18n.js') }}"></script>
+<script src="{{ asset('assets/vendor/libs/typeahead-js/typeahead.js') }}"></script>
+<script src="{{ asset('assets/vendor/js/menu.js') }}"></script>
+
+<!-- Main JS -->
+<script src="{{ asset('assets/js/main.js') }}"></script>
 
 <style>
 .folder-card:hover, .file-card:hover {
@@ -986,6 +1176,74 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .display-1 {
     font-size: 3rem !important;
+}
+
+/* Dropdown fixes */
+.dropdown {
+    position: relative;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 99999;
+    display: none !important;
+    min-width: 160px;
+    padding: 8px 0;
+    margin: 2px 0 0;
+    font-size: 14px;
+    color: #212529;
+    text-align: left;
+    list-style: none;
+    background-color: #ffffff;
+    background-clip: padding-box;
+    border: 2px solid #333;
+    border-radius: 6px;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+    transform: translateY(0);
+}
+
+.dropdown-menu.show {
+    display: block !important;
+    animation: dropdownSlide 0.3s ease-out;
+}
+
+@keyframes dropdownSlide {
+    0% {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dropdown-item {
+    display: block;
+    width: 100%;
+    padding: 0.375rem 1rem;
+    clear: both;
+    font-weight: 400;
+    color: #212529;
+    text-align: inherit;
+    text-decoration: none;
+    white-space: nowrap;
+    background-color: transparent;
+    border: 0;
+}
+
+.dropdown-item:hover {
+    color: #1e2125;
+    background-color: #e9ecef;
+}
+
+.dropdown-divider {
+    height: 0;
+    margin: 0.5rem 0;
+    overflow: hidden;
+    border-top: 1px solid rgba(0, 0, 0, 0.15);
 }
 </style>
 </body>

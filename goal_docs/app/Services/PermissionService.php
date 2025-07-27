@@ -249,10 +249,15 @@ class PermissionService
         ];
 
         if ($currentUser->type !== 'individual') {
-            $entities['departments'] = Department::forUserType($currentUser->type)
-                                                ->where('type', $currentUser->type_name)
-                                                ->active()
-                                                ->get();
+            // Get departments/roles with proper naming
+            $departments = Department::forUserType($currentUser->type)
+                                   ->where('type', $currentUser->type_name)
+                                   ->active()
+                                   ->get();
+            
+            // Use appropriate key based on user type
+            $departmentKey = $this->getDepartmentKey($currentUser->type);
+            $entities[$departmentKey] = $departments;
             
             $entities['positions'] = Position::whereHas('department', function($query) use ($currentUser) {
                 $query->where('user_type', $currentUser->type)
@@ -261,6 +266,25 @@ class PermissionService
         }
 
         return $entities;
+    }
+
+    /**
+     * Get the appropriate key for departments based on user type
+     */
+    private function getDepartmentKey(string $userType): string
+    {
+        $keyMapping = [
+            'family' => 'roles',
+            'organisation' => 'departments',
+            'government' => 'agencies',
+            'social_group' => 'groups',
+            'professional_group' => 'divisions',
+            'educational_institution' => 'departments',
+            'non_profit' => 'departments',
+            'individual' => 'categories', // Individual users don't typically have hierarchies, but include for completeness
+        ];
+
+        return $keyMapping[$userType] ?? 'departments';
     }
 
     /**
