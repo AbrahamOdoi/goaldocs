@@ -23,6 +23,9 @@ class UserManagementController extends Controller
         if ($user && $user->type === 'individual') {
             abort(404, 'User management not available for individual accounts');
         }
+        if (!$user->is_admin) {
+            abort(403, 'Access denied. Only administrators can manage users.');
+        }
     }
 
     public function index(Request $request)

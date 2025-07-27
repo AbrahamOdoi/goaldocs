@@ -12,8 +12,16 @@ use Illuminate\Support\Facades\Log;
 
 class HierarchyController extends Controller
 {
+    private function checkAdminAccess()
+    {
+        if (!Auth::user()->is_admin) {
+            abort(403, 'Access denied. Only administrators can manage organizational structure.');
+        }
+    }
+
     public function index()
     {
+        $this->checkAdminAccess();
         $user = Auth::user();
         $userType = $user->type ?? 'organisation';
         
@@ -32,6 +40,7 @@ class HierarchyController extends Controller
 
     public function createDepartment()
     {
+        $this->checkAdminAccess();
         $user = Auth::user();
         $userType = $user->type ?? 'organisation';
         $displayName = $this->getDisplayName($userType);
@@ -41,6 +50,7 @@ class HierarchyController extends Controller
 
     public function storeDepartment(Request $request)
     {
+        $this->checkAdminAccess();
         $user = Auth::user();
         $userType = $user->type ?? 'organisation';
 

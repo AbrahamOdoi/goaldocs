@@ -33,9 +33,8 @@ Route::middleware('guest')->group(function () {
 
 Route::post('/register', [RegisterController::class, 'register']);
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class])->group(function () {
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
-    Route::get('/verify/method', [VerificationController::class, 'chooseMethod'])->name('verification.method');
     // OTP PROCESS
     Route::get('/verify/method', [VerificationController::class, 'chooseMethod'])->name('verification.method');
     Route::post('/verify/send', [VerificationController::class, 'sendOtp'])->name('verification.send');

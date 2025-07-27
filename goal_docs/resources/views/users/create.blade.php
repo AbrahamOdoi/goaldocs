@@ -147,17 +147,41 @@
                                             
                                             @if(auth()->user()->is_admin)
                                             <div class="mb-3">
-                                                <div class="form-check">
-                                                    <input class="form-check-input @error('is_admin') is-invalid @enderror" 
-                                                           type="checkbox" id="is_admin" name="is_admin" value="1" 
-                                                           {{ old('is_admin') ? 'checked' : '' }}>
-                                                    <label class="form-check-label" for="is_admin">
-                                                        Grant Administrative Access
-                                                    </label>
-                                                    <small class="text-muted d-block">Admin users can manage other users and organizational settings</small>
-                                                    @error('is_admin')
-                                                        <div class="invalid-feedback">{{ $message }}</div>
-                                                    @enderror
+                                                <div class="card bg-light">
+                                                    <div class="card-body py-3">
+                                                        <h6 class="card-title mb-2">Administrative Privileges</h6>
+                                                        <div class="form-check form-switch">
+                                                            <input class="form-check-input @error('is_admin') is-invalid @enderror" 
+                                                                   type="checkbox" id="is_admin" name="is_admin" value="1" 
+                                                                   {{ old('is_admin') ? 'checked' : '' }}>
+                                                            <label class="form-check-label fw-medium" for="is_admin">
+                                                                Grant Administrative Access
+                                                            </label>
+                                                        </div>
+                                                        <small class="text-muted">
+                                                            <i class="ti ti-info-circle me-1"></i>
+                                                            Admin users can create/manage other users, manage organizational structure, and access all administrative features
+                                                        </small>
+                                                        @error('is_admin')
+                                                            <div class="invalid-feedback">{{ $message }}</div>
+                                                        @enderror
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            @else
+                                            <div class="mb-3">
+                                                <div class="card bg-warning-subtle border-warning">
+                                                    <div class="card-body py-3">
+                                                        <h6 class="card-title mb-2 text-warning">
+                                                            <i class="ti ti-shield-off me-1"></i>
+                                                            Administrative Privileges
+                                                        </h6>
+                                                        <small class="text-muted">
+                                                            Only administrators can grant admin privileges to other users. 
+                                                            This user will be created as a regular user.
+                                                        </small>
+                                                        <input type="hidden" name="is_admin" value="0">
+                                                    </div>
                                                 </div>
                                             </div>
                                             @endif

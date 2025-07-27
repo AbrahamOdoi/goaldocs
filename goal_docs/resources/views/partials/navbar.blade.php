@@ -431,6 +431,7 @@
           <li>
             <div class="dropdown-divider"></div>
           </li>
+          @if(auth()->user()->is_admin)
           <li>
             <a class="dropdown-item" href="{{ route('hierarchy.index') }}">
               <i class="ti ti-sitemap me-2 ti-sm"></i>
@@ -459,6 +460,7 @@
               <span class="align-middle">Users</span>
             </a>
           </li>
+          @endif
           @endif
           <li>
             <div class="dropdown-divider"></div>

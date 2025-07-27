@@ -175,10 +175,11 @@ class VerificationController extends Controller
             return back()->withErrors(['code' => 'Invalid or expired code']);
         }
 
-        // ✅ Optionally mark email_verified_at if email was used
-        if ($otp->channel === 'email') {
-            $user->update(['email_verified_at' => now()]);
-        }
+        // ✅ Mark user as verified regardless of verification method (email or phone)
+        $user->update(['email_verified_at' => now()]);
+        
+        // Debug logging
+        AuditLogger::log("User {$user->email} completed OTP verification via {$otp->channel}. Email verified at: " . $user->fresh()->email_verified_at);
 
         // ✅ Delete used OTP
         DB::table('otp_codes')->where('id', $otp->id)->delete();
