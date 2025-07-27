@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 
 
-<html lang="en" class="light-style layout-navbar-fixed layout-menu-fixed layout-compact " dir="ltr" data-theme="theme-default" data-assets-path="../../assets/" data-template="vertical-menu-template">
+<html lang="en" class="light-style layout-navbar-fixed layout-menu-fixed layout-compact " dir="ltr" data-theme="theme-default" data-assets-path="../../../assets/" data-template="vertical-menu-template">
 
   <head>
     <meta charset="utf-8" />
@@ -25,7 +25,7 @@
     <!-- End Google Tag Manager -->
     
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="../../assets/img/favicon/favicon.ico" />
+    <link rel="icon" type="image/x-icon" href="../../../assets/img/favicon/favicon.ico" />
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -33,38 +33,38 @@
     <link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&amp;ampdisplay=swap" rel="stylesheet">
 
     <!-- Icons -->
-    <link rel="stylesheet" href="../../assets/vendor/fonts/fontawesome.css" />
-    <link rel="stylesheet" href="../../assets/vendor/fonts/tabler-icons.css"/>
-    <link rel="stylesheet" href="../../assets/vendor/fonts/flag-icons.css" />
+    <link rel="stylesheet" href="../../../assets/vendor/fonts/fontawesome.css" />
+    <link rel="stylesheet" href="../../../assets/vendor/fonts/tabler-icons.css"/>
+    <link rel="stylesheet" href="../../../assets/vendor/fonts/flag-icons.css" />
 
     <!-- Core CSS -->
-    <link rel="stylesheet" href="../../assets/vendor/css/rtl/core.css" class="template-customizer-core-css" />
-    <link rel="stylesheet" href="../../assets/vendor/css/rtl/theme-default.css" class="template-customizer-theme-css" />
-    <link rel="stylesheet" href="../../assets/css/demo.css" />
+    <link rel="stylesheet" href="../../../assets/vendor/css/rtl/core.css" class="template-customizer-core-css" />
+    <link rel="stylesheet" href="../../../assets/vendor/css/rtl/theme-default.css" class="template-customizer-theme-css" />
+    <link rel="stylesheet" href="../../../assets/css/demo.css" />
     
     <!-- Vendors CSS -->
-    <link rel="stylesheet" href="../../assets/vendor/libs/node-waves/node-waves.css" />
-    <link rel="stylesheet" href="../../assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css" />
-    <link rel="stylesheet" href="../../assets/vendor/libs/typeahead-js/typeahead.css" /> 
-    <link rel="stylesheet" href="../../assets/vendor/libs/select2/select2.css" />
-<link rel="stylesheet" href="../../assets/vendor/libs/@form-validation/umd/styles/index.min.css" />
-<link rel="stylesheet" href="../../assets/vendor/libs/animate-css/animate.css" />
-<link rel="stylesheet" href="../../assets/vendor/libs/sweetalert2/sweetalert2.css" />
+    <link rel="stylesheet" href="../../../assets/vendor/libs/node-waves/node-waves.css" />
+    <link rel="stylesheet" href="../../../assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css" />
+    <link rel="stylesheet" href="../../../assets/vendor/libs/typeahead-js/typeahead.css" /> 
+    <link rel="stylesheet" href="../../../assets/vendor/libs/select2/select2.css" />
+<link rel="stylesheet" href="../../../assets/vendor/libs/@form-validation/umd/styles/index.min.css" />
+<link rel="stylesheet" href="../../../assets/vendor/libs/animate-css/animate.css" />
+<link rel="stylesheet" href="../../../assets/vendor/libs/sweetalert2/sweetalert2.css" />
 
-<link rel="stylesheet" href="../../assets/vendor/libs/datatables-bs5/datatables.bootstrap5.css">
-<link rel="stylesheet" href="../../assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.css">
-<link rel="stylesheet" href="../../assets/vendor/libs/datatables-buttons-bs5/buttons.bootstrap5.css">
+<link rel="stylesheet" href="../../../assets/vendor/libs/datatables-bs5/datatables.bootstrap5.css">
+<link rel="stylesheet" href="../../../assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.css">
+<link rel="stylesheet" href="../../../assets/vendor/libs/datatables-buttons-bs5/buttons.bootstrap5.css">
 
     <!-- Page CSS -->
     
 
     <!-- Helpers -->
-    <script src="../../assets/vendor/js/helpers.js"></script>
+    <script src="../../../assets/vendor/js/helpers.js"></script>
     <!--! Template customizer & Theme config files MUST be included after core stylesheets and helpers.js in the <head> section -->
     <!--? Template customizer: To hide customizer set displayCustomizer value false in config.js.  -->
-    <script src="../../assets/vendor/js/template-customizer.js"></script>
+    <script src="../../../assets/vendor/js/template-customizer.js"></script>
     <!--? Config:  Mandatory theme config file contain global vars & default theme options, Set your preferred theme option in this file.  -->
-    <script src="../../assets/js/config.js"></script>
+    <script src="../../../assets/js/config.js"></script>
     
 </head>
 
@@ -221,7 +221,7 @@
               <div class="cardMaster bg-lighter p-3 rounded mb-3">
                 <div class="d-flex justify-content-between flex-sm-row flex-column">
                   <div class="card-information me-2">
-                    <img class="mb-3 img-fluid" src="../../assets/img/icons/payments/mastercard.png" alt="Master Card">
+                    <img class="mb-3 img-fluid" src="../../../assets/img/icons/payments/mastercard.png" alt="Master Card">
                     <div class="d-flex align-items-center mb-2 flex-wrap gap-2">
                       <p class="mb-0 me-2">Tom McBride</p>
                       <span class="badge bg-label-primary">Primary</span>
@@ -240,7 +240,7 @@
               <div class="cardMaster bg-lighter p-3 rounded">
                 <div class="d-flex justify-content-between flex-sm-row flex-column">
                   <div class="card-information me-2">
-                    <img class="mb-3 img-fluid" src="../../assets/img/icons/payments/visa.png" alt="Visa Card">
+                    <img class="mb-3 img-fluid" src="../../../assets/img/icons/payments/visa.png" alt="Visa Card">
                     <p class="mb-2">Mildred Wagner</p>
                     <span class="card-number">&#8727;&#8727;&#8727;&#8727; &#8727;&#8727;&#8727;&#8727; 5896</span>
                   </div>
@@ -431,7 +431,7 @@
               <div class="card border rounded shadow-none">
                 <div class="card-body">
                   <div class="my-3 pt-2 text-center">
-                    <img src="../../assets/img/illustrations/page-pricing-basic.png" alt="Basic Image" height="140">
+                    <img src="../../../assets/img/illustrations/page-pricing-basic.png" alt="Basic Image" height="140">
                   </div>
                   <h3 class="card-title text-center text-capitalize mb-1">Basic</h3>
                   <p class="text-center">A simple start for everyone</p>
@@ -465,7 +465,7 @@
                     <span class="badge bg-label-primary">Popular</span>
                   </div>
                   <div class="my-3 pt-2 text-center">
-                    <img src="../../assets/img/illustrations/page-pricing-standard.png" alt="Standard Image" height="140">
+                    <img src="../../../assets/img/illustrations/page-pricing-standard.png" alt="Standard Image" height="140">
                   </div>
                   <h3 class="card-title text-center text-capitalize mb-1">Pro</h3>
                   <p class="text-center">For small to medium businesses</p>
@@ -498,7 +498,7 @@
                 <div class="card-body">
 
                   <div class="my-3 pt-2 text-center">
-                    <img src="../../assets/img/illustrations/page-pricing-enterprise.png" alt="Enterprise Image" height="140">
+                    <img src="../../../assets/img/illustrations/page-pricing-enterprise.png" alt="Enterprise Image" height="140">
                   </div>
                   <h3 class="card-title text-center text-capitalize mb-1">Enterprise</h3>
                   <p class="text-center">Solution for big organizations</p>
@@ -534,7 +534,7 @@
 </div>
 <!--/ Pricing Modal -->
 
-<script src="../../assets/js/pages-pricing.js"></script>
+<script src="../../../assets/js/pages-pricing.js"></script>
 
 <!--/ Modal -->
 
@@ -561,7 +561,7 @@
         <a href="https://themeforest.net/licenses/standard" class="footer-link me-4" target="_blank">License</a>
         <a href="https://1.envato.market/pixinvent_portfolio" target="_blank" class="footer-link me-4">More Themes</a>
         
-        <a href="../../documentation/index.html" target="_blank" class="footer-link me-4">Documentation</a>
+        <a href="../../../documentation/index.html" target="_blank" class="footer-link me-4">Documentation</a>
         
         
         <a href="https://pixinvent.ticksy.com/" target="_blank" class="footer-link d-none d-sm-inline-block">Support</a>
@@ -598,39 +598,39 @@
   <!-- Core JS -->
   <!-- build:js assets/vendor/js/core.js -->
   
-  <script src="../../assets/vendor/libs/jquery/jquery.js"></script>
-  <script src="../../assets/vendor/libs/popper/popper.js"></script>
-  <script src="../../assets/vendor/js/bootstrap.js"></script>
-  <script src="../../assets/vendor/libs/node-waves/node-waves.js"></script>
-  <script src="../../assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js"></script>
-  <script src="../../assets/vendor/libs/hammer/hammer.js"></script>
-  <script src="../../assets/vendor/libs/i18n/i18n.js"></script>
-  <script src="../../assets/vendor/libs/typeahead-js/typeahead.js"></script>
-   <script src="../../assets/vendor/js/menu.js"></script>
+  <script src="../../../assets/vendor/libs/jquery/jquery.js"></script>
+  <script src="../../../assets/vendor/libs/popper/popper.js"></script>
+  <script src="../../../assets/vendor/js/bootstrap.js"></script>
+  <script src="../../../assets/vendor/libs/node-waves/node-waves.js"></script>
+  <script src="../../../assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js"></script>
+  <script src="../../../assets/vendor/libs/hammer/hammer.js"></script>
+  <script src="../../../assets/vendor/libs/i18n/i18n.js"></script>
+  <script src="../../../assets/vendor/libs/typeahead-js/typeahead.js"></script>
+   <script src="../../../assets/vendor/js/menu.js"></script>
   
   <!-- endbuild -->
 
   <!-- Vendors JS -->
-  <script src="../../assets/vendor/libs/select2/select2.js"></script>
-<script src="../../assets/vendor/libs/@form-validation/umd/bundle/popular.min.js"></script>
-<script src="../../assets/vendor/libs/@form-validation/umd/plugin-bootstrap5/index.min.js"></script>
-<script src="../../assets/vendor/libs/@form-validation/umd/plugin-auto-focus/index.min.js"></script>
-<script src="../../assets/vendor/libs/cleavejs/cleave.js"></script>
-<script src="../../assets/vendor/libs/cleavejs/cleave-phone.js"></script>
-<script src="../../assets/vendor/libs/sweetalert2/sweetalert2.js"></script>
+  <script src="../../../assets/vendor/libs/select2/select2.js"></script>
+<script src="../../../assets/vendor/libs/@form-validation/umd/bundle/popular.min.js"></script>
+<script src="../../../assets/vendor/libs/@form-validation/umd/plugin-bootstrap5/index.min.js"></script>
+<script src="../../../assets/vendor/libs/@form-validation/umd/plugin-auto-focus/index.min.js"></script>
+<script src="../../../assets/vendor/libs/cleavejs/cleave.js"></script>
+<script src="../../../assets/vendor/libs/cleavejs/cleave-phone.js"></script>
+<script src="../../../assets/vendor/libs/sweetalert2/sweetalert2.js"></script>
 
-<script src="../../assets/vendor/libs/moment/moment.js"></script>
-<script src="../../assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js"></script>
+<script src="../../../assets/vendor/libs/moment/moment.js"></script>
+<script src="../../../assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js"></script>
 
   <!-- Main JS -->
-  <script src="../../assets/js/main.js"></script>
+  <script src="../../../assets/js/main.js"></script>
   
 
   <!-- Page JS -->
-  <script src="../../assets/js/pages-pricing.js"></script>
-<script src="../../assets/js/pages-account-settings-billing.js"></script>
-<script src="../../assets/js/app-invoice-list.js"></script>
-<script src="../../assets/js/modal-edit-cc.js"></script>
+  <script src="../../../assets/js/pages-pricing.js"></script>
+<script src="../../../assets/js/pages-account-settings-billing.js"></script>
+<script src="../../../assets/js/app-invoice-list.js"></script>
+<script src="../../../assets/js/modal-edit-cc.js"></script>
   
 </body>
 

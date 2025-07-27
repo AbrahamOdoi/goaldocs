@@ -158,10 +158,27 @@
             <div class="row row-bordered overflow-visible g-0">
               <div class="dropdown-shortcuts-item col">
                 <span class="dropdown-shortcuts-icon rounded-circle mb-2">
-                  <i class="ti ti-help fs-4"></i>
+                  <i class="ti ti-sitemap fs-4"></i>
                 </span>
-                <a href="pages-faq.html" class="stretched-link">FAQs</a>
-                <small class="text-muted mb-0">FAQs & Articles</small>
+                <a href="{{ route('hierarchy.index') }}" class="stretched-link">
+                  @php
+                    $type = strtolower(auth()->user()->type ?? '');
+                    $typeLabels = [
+                      'organisation' => 'Departments',
+                      'family' => 'Roles',
+                      'government' => 'Agencies',
+                      'social_group' => 'Groups',
+                      'professional_group' => 'Divisions',
+                      'educational_institution' => 'Departments',
+                      'non_profit' => 'Departments',
+                      'individual' => 'Categories',
+                      '' => 'Structure',
+                    ];
+                    $label = $typeLabels[$type] ?? 'Structure';
+                  @endphp
+                  {{ $label }}
+                </a>
+                <small class="text-muted mb-0">Manage Structure</small>
               </div>
               <div class="dropdown-shortcuts-item col">
                 <span class="dropdown-shortcuts-icon rounded-circle mb-2">
@@ -195,7 +212,7 @@
                 <div class="d-flex">
                   <div class="flex-shrink-0 me-3">
                     <div class="avatar">
-                      <img src="../../assets/img/avatars/1.png" alt class="h-auto rounded-circle">
+                      <img src="../../../assets/img/avatars/1.png" alt class="h-auto rounded-circle">
                     </div>
                   </div>
                   <div class="flex-grow-1">
@@ -231,7 +248,7 @@
                 <div class="d-flex">
                   <div class="flex-shrink-0 me-3">
                     <div class="avatar">
-                      <img src="../../assets/img/avatars/2.png" alt class="h-auto rounded-circle">
+                      <img src="../../../assets/img/avatars/2.png" alt class="h-auto rounded-circle">
                     </div>
                   </div>
                   <div class="flex-grow-1">
@@ -267,7 +284,7 @@
                 <div class="d-flex">
                   <div class="flex-shrink-0 me-3">
                     <div class="avatar">
-                      <img src="../../assets/img/avatars/9.png" alt class="h-auto rounded-circle">
+                      <img src="../../../assets/img/avatars/9.png" alt class="h-auto rounded-circle">
                     </div>
                   </div>
                   <div class="flex-grow-1">
@@ -303,7 +320,7 @@
                 <div class="d-flex">
                   <div class="flex-shrink-0 me-3">
                     <div class="avatar">
-                      <img src="../../assets/img/avatars/5.png" alt class="h-auto rounded-circle">
+                      <img src="../../../assets/img/avatars/5.png" alt class="h-auto rounded-circle">
                     </div>
                   </div>
                   <div class="flex-grow-1">
@@ -321,7 +338,7 @@
                 <div class="d-flex">
                   <div class="flex-shrink-0 me-3">
                     <div class="avatar">
-                      <img src="../../assets/img/avatars/6.png" alt class="h-auto rounded-circle">
+                      <img src="../../../assets/img/avatars/6.png" alt class="h-auto rounded-circle">
                     </div>
                   </div>
                   <div class="flex-grow-1">
@@ -368,7 +385,7 @@
       <li class="nav-item navbar-dropdown dropdown-user dropdown">
         <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);" data-bs-toggle="dropdown">
           <div class="avatar avatar-online">
-            <img src="../../assets/img/avatars/1.png" alt class="h-auto rounded-circle">
+            <img src="../../../assets/img/avatars/1.png" alt class="h-auto rounded-circle">
           </div>
         </a>
         <ul class="dropdown-menu dropdown-menu-end">
@@ -377,7 +394,7 @@
               <div class="d-flex">
                 <div class="flex-shrink-0 me-3">
                   <div class="avatar avatar-online">
-                    <img src="../../assets/img/avatars/1.png" alt class="h-auto rounded-circle">
+                    <img src="../../../assets/img/avatars/1.png" alt class="h-auto rounded-circle">
                   </div>
                 </div>
                 <div class="flex-grow-1">
@@ -415,17 +432,34 @@
             <div class="dropdown-divider"></div>
           </li>
           <li>
-            <a class="dropdown-item" href="pages-faq.html">
-              <i class="ti ti-help me-2 ti-sm"></i>
-              <span class="align-middle">FAQ</span>
+            <a class="dropdown-item" href="{{ route('hierarchy.index') }}">
+              <i class="ti ti-sitemap me-2 ti-sm"></i>
+              @php
+                $type = strtolower(auth()->user()->type ?? '');
+                $typeLabels = [
+                  'organisation' => 'Departments',
+                  'family' => 'Roles',
+                  'government' => 'Agencies',
+                  'social_group' => 'Groups',
+                  'professional_group' => 'Divisions',
+                  'educational_institution' => 'Departments',
+                  'non_profit' => 'Departments',
+                  'individual' => 'Categories',
+                  '' => 'Structure',
+                ];
+                $label = $typeLabels[$type] ?? 'Structure';
+              @endphp
+              <span class="align-middle">{{ $label }}</span>
             </a>
           </li>
+          @if(auth()->user()->type !== 'individual')
           <li>
-            <a class="dropdown-item" href="pages-pricing.html">
-              <i class="ti ti-currency-dollar me-2 ti-sm"></i>
-              <span class="align-middle">Pricing</span>
+            <a class="dropdown-item" href="{{ route('users.index') }}">
+              <i class="ti ti-users me-2 ti-sm"></i>
+              <span class="align-middle">Users</span>
             </a>
           </li>
+          @endif
           <li>
             <div class="dropdown-divider"></div>
           </li>

@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class LoginController extends Controller
@@ -41,11 +42,16 @@ class LoginController extends Controller
         Auth::login($user, $request->boolean('remember'));
         $user->updateLastLogin();
 
+        // Debug logging
+        Log::info('Login attempt for user: ' . $user->email . ', email_verified_at: ' . ($user->email_verified_at ? $user->email_verified_at->toDateTimeString() : 'NULL'));
+
         // If user is not verified, redirect to OTP verification
         if (is_null($user->email_verified_at)) {
+            Log::info('Redirecting unverified user to OTP verification: ' . $user->email);
             return redirect()->route('verification.method');
         }
 
+        Log::info('User is verified, redirecting to dashboard: ' . $user->email);
         // Redirect to dashboard after login
         return redirect()->route('dashboard');
     }

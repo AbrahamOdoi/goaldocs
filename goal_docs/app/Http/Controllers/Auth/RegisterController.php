@@ -37,6 +37,7 @@ class RegisterController extends Controller
                 'phone' => $request->phone,
                 'type_name' => $request->type !== 'individual' ? $request->type_name : null,
                 'password' => Hash::make($request->password),
+                'is_admin' => true, // All new signups are admin by default
             ]);
 
             DB::commit();

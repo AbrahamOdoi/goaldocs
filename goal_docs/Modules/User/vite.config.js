@@ -6,13 +6,13 @@ import { fileURLToPath } from 'url';
 
 export default defineConfig({
     build: {
-        outDir: '../../public/build-user',
+        outDir: '../../../public/build-user',
         emptyOutDir: true,
         manifest: true,
     },
     plugins: [
         laravel({
-            publicDirectory: '../../public',
+            publicDirectory: '../../../public',
             buildDirectory: 'build-user',
             input: [
                 __dirname + '/resources/assets/sass/app.scss',

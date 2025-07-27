@@ -60,4 +60,34 @@ Route::middleware('auth')->group(function () {
     Route::get('/account/connections', function () {
         return view('accountSettings.connections');
     })->name('account.connections');
+    Route::get('/profile', function () {
+        return view('userProfile.profile');
+    })->name('profile');
+    
+    // Hierarchy Management Routes
+    Route::prefix('hierarchy')->name('hierarchy.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\HierarchyController::class, 'index'])->name('index');
+        Route::get('/departments/create', [\App\Http\Controllers\HierarchyController::class, 'createDepartment'])->name('departments.create');
+        Route::post('/departments', [\App\Http\Controllers\HierarchyController::class, 'storeDepartment'])->name('departments.store');
+        Route::get('/departments/{department}/edit', [\App\Http\Controllers\HierarchyController::class, 'editDepartment'])->name('departments.edit');
+        Route::put('/departments/{department}', [\App\Http\Controllers\HierarchyController::class, 'updateDepartment'])->name('departments.update');
+        Route::get('/departments/{department}/positions/create', [\App\Http\Controllers\HierarchyController::class, 'createPosition'])->name('positions.create');
+        Route::post('/departments/{department}/positions', [\App\Http\Controllers\HierarchyController::class, 'storePosition'])->name('positions.store');
+        Route::get('/positions/{position}/edit', [\App\Http\Controllers\HierarchyController::class, 'editPosition'])->name('positions.edit');
+        Route::put('/positions/{position}', [\App\Http\Controllers\HierarchyController::class, 'updatePosition'])->name('positions.update');
+        Route::post('/assign-position', [\App\Http\Controllers\HierarchyController::class, 'assignPosition'])->name('assign-position');
+        Route::delete('/remove-position', [\App\Http\Controllers\HierarchyController::class, 'removePosition'])->name('remove-position');
+    });
+    
+    // User Management Routes
+    Route::prefix('users')->name('users.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\UserManagementController::class, 'index'])->name('index');
+        Route::get('/create', [\App\Http\Controllers\UserManagementController::class, 'create'])->name('create');
+        Route::post('/', [\App\Http\Controllers\UserManagementController::class, 'store'])->name('store');
+        Route::get('/{user}/edit', [\App\Http\Controllers\UserManagementController::class, 'edit'])->name('edit');
+        Route::put('/{user}', [\App\Http\Controllers\UserManagementController::class, 'update'])->name('update');
+        Route::delete('/{user}', [\App\Http\Controllers\UserManagementController::class, 'destroy'])->name('destroy');
+        Route::post('/{user}/toggle-admin', [\App\Http\Controllers\UserManagementController::class, 'toggleAdmin'])->name('toggle-admin');
+        Route::post('/{user}/resend-credentials', [\App\Http\Controllers\UserManagementController::class, 'resendCredentials'])->name('resend-credentials');
+    });
 });

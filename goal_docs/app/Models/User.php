@@ -16,6 +16,8 @@ class User extends Authenticatable
 
     protected $fillable = [
         'name',
+        'first_name',
+        'last_name',
         'type',
         'type_name',
         'email',
@@ -23,7 +25,9 @@ class User extends Authenticatable
         'phone',
         'avatar',
         'is_active',
+        'is_admin',
         'last_login_at',
+        'email_verified_at',
     ];
 
     protected $hidden = [
@@ -35,6 +39,7 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'last_login_at' => 'datetime',
         'is_active' => 'boolean',
+        'is_admin' => 'boolean',
     ];
 
     // Remove all tenant-related relationships and helpers
@@ -44,8 +49,44 @@ class User extends Authenticatable
         $this->update(['last_login_at' => now()]);
     }
 
-    public function devices()
+
+
+    public function positions()
     {
-        return $this->hasMany(UserDevice::class);
+        return $this->belongsToMany(Position::class, 'user_positions')
+                    ->withPivot(['start_date', 'end_date', 'is_primary', 'is_active'])
+                    ->withTimestamps();
+    }
+
+    public function primaryPosition()
+    {
+        return $this->positions()->wherePivot('is_primary', true)->wherePivot('is_active', true)->first();
+    }
+
+    public function activePositions()
+    {
+        return $this->positions()->wherePivot('is_active', true);
+    }
+
+    public function departments()
+    {
+        return $this->hasManyThrough(Department::class, Position::class, 'department_id', 'id', 'id', 'department_id');
+    }
+
+    // Accessor methods for first_name and last_name
+    public function getFirstNameAttribute()
+    {
+        $nameParts = explode(' ', $this->name);
+        return $nameParts[0] ?? '';
+    }
+
+    public function getLastNameAttribute()
+    {
+        $nameParts = explode(' ', $this->name);
+        if (count($nameParts) > 1) {
+            array_shift($nameParts); // Remove first name
+            return implode(' ', $nameParts); // Join remaining parts as last name
+        }
+        return '';
     }
 }

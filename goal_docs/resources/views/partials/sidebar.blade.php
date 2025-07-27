@@ -74,7 +74,7 @@
           </a>
           <ul class="menu-sub">
             <li class="menu-item">
-              <a href="pages-profile-user.html" class="menu-link">
+              <a href="{{ route('profile') }}" class="menu-link">
                 <div data-i18n="Profile">Profile</div>
               </a>
             </li>
@@ -128,15 +128,34 @@
           </ul>
         </li>
         <li class="menu-item">
-          <a href="pages-faq.html" class="menu-link">
-            <div data-i18n="FAQ">FAQ</div>
+          <a href="{{ route('hierarchy.index') }}" class="menu-link">
+            <i class="menu-icon tf-icons ti ti-sitemap"></i>
+            @php
+              $type = strtolower(auth()->user()->type ?? '');
+              $typeLabels = [
+                'organisation' => 'Departments',
+                'family' => 'Roles',
+                'government' => 'Agencies',
+                'social_group' => 'Groups',
+                'professional_group' => 'Divisions',
+                'educational_institution' => 'Departments',
+                'non_profit' => 'Departments',
+                'individual' => 'Categories',
+                '' => 'Structure',
+              ];
+              $label = $typeLabels[$type] ?? 'Structure';
+            @endphp
+            <div data-i18n="{{ $label }}">{{ $label }}</div>
           </a>
         </li>
+        @if(auth()->user()->type !== 'individual')
         <li class="menu-item">
-          <a href="pages-pricing.html" class="menu-link">
-            <div data-i18n="Pricing">Pricing</div>
+          <a href="{{ route('users.index') }}" class="menu-link">
+            <i class="menu-icon tf-icons ti ti-users"></i>
+            <div data-i18n="Users">Users</div>
           </a>
         </li>
+        @endif
         <li class="menu-item">
           <a href="javascript:void(0);" class="menu-link menu-toggle">
             <div data-i18n="Misc">Misc</div>

@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 
-
 <html lang="en" class="light-style layout-navbar-fixed layout-menu-fixed layout-compact " dir="ltr" data-theme="theme-default" data-assets-path="../../../assets/" data-template="vertical-menu-template">
 
   <head>
@@ -74,11 +73,6 @@
 <div class="layout-wrapper layout-content-navbar  ">
   <div class="layout-container">
 
-    
-    
-
-
-
 
 <!-- Menu -->
 
@@ -86,14 +80,10 @@
 @include('partials.sidebar')
 <!-- / Menu -->
 
-    
 
     <!-- Layout container -->
     <div class="layout-page">
       
-      
-
-
 
 <!-- Navbar -->
 
@@ -124,12 +114,12 @@
       </div>
       <div class="user-profile-header d-flex flex-column flex-sm-row text-sm-start text-center mb-4">
         <div class="flex-shrink-0 mt-n2 mx-sm-0 mx-auto">
-          <img src="../../../assets/img/avatars/14.png" alt="user image" class="d-block h-auto ms-0 ms-sm-4 rounded user-profile-img">
+          <img src="{{ Auth::user()->avatar ? asset('storage/' . Auth::user()->avatar) : asset('assets/img/avatars/14.png') }}" alt="user image" class="d-block h-auto ms-0 ms-sm-4 rounded user-profile-img">
         </div>
         <div class="flex-grow-1 mt-3 mt-sm-5">
           <div class="d-flex align-items-md-end align-items-sm-start align-items-center justify-content-md-between justify-content-start mx-4 flex-md-row flex-column gap-4">
             <div class="user-profile-info">
-              <h4>John Doe</h4>
+              <h4>{{ Auth::user()->name }}</h4>
               <ul class="list-inline mb-0 d-flex align-items-center flex-wrap justify-content-sm-start justify-content-center gap-2">
                 <li class="list-inline-item d-flex gap-1">
                   <i class='ti ti-color-swatch'></i> UX Designer
@@ -138,7 +128,7 @@
                   <i class='ti ti-map-pin'></i> Vatican City
                 </li>
                 <li class="list-inline-item d-flex gap-1">
-                  <i class='ti ti-calendar'></i> Joined April 2021
+                  <i class='ti ti-calendar'></i> Joined {{ Auth::user()->created_at->format('F Y') }}
                 </li>
               </ul>
             </div>
@@ -156,12 +146,7 @@
 <!-- Navbar pills -->
 <div class="row">
   <div class="col-md-12">
-    <ul class="nav nav-pills flex-column flex-sm-row mb-4">
-      <li class="nav-item"><a class="nav-link active" href="javascript:void(0);"><i class='ti-xs ti ti-user-check me-1'></i> Profile</a></li>
-      <li class="nav-item"><a class="nav-link" href="pages-profile-teams.html"><i class='ti-xs ti ti-users me-1'></i> Teams</a></li>
-      <li class="nav-item"><a class="nav-link" href="pages-profile-projects.html"><i class='ti-xs ti ti-layout-grid me-1'></i> Projects</a></li>
-      <li class="nav-item"><a class="nav-link" href="pages-profile-connections.html"><i class='ti-xs ti ti-link me-1'></i> Connections</a></li>
-    </ul>
+    @include('partials.profilebar')
   </div>
 </div>
 <!--/ Navbar pills -->
@@ -591,6 +576,11 @@
   <!-- / Layout wrapper -->
 
   
+  <div class="buy-now">
+    <a href="https://1.envato.market/vuexy_admin" target="_blank" class="btn btn-danger btn-buy-now">Buy Now</a>
+  </div>
+  
+
   
 
   <!-- Core JS -->

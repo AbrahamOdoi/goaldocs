@@ -2,7 +2,7 @@
 
 
 
-<html lang="en" class="light-style layout-navbar-fixed layout-menu-fixed layout-compact " dir="ltr" data-theme="theme-default" data-assets-path="../../assets/" data-template="vertical-menu-template">
+<html lang="en" class="light-style layout-navbar-fixed layout-menu-fixed layout-compact " dir="ltr" data-theme="theme-default" data-assets-path="../../../assets/" data-template="vertical-menu-template">
 
   <head>
     <meta charset="utf-8" />
@@ -26,7 +26,7 @@
     <!-- End Google Tag Manager -->
     
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="../../assets/img/favicon/favicon.ico" />
+    <link rel="icon" type="image/x-icon" href="../../../assets/img/favicon/favicon.ico" />
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -34,31 +34,31 @@
     <link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&amp;ampdisplay=swap" rel="stylesheet">
 
     <!-- Icons -->
-    <link rel="stylesheet" href="../../assets/vendor/fonts/fontawesome.css" />
-    <link rel="stylesheet" href="../../assets/vendor/fonts/tabler-icons.css"/>
-    <link rel="stylesheet" href="../../assets/vendor/fonts/flag-icons.css" />
+    <link rel="stylesheet" href="../../../assets/vendor/fonts/fontawesome.css" />
+    <link rel="stylesheet" href="../../../assets/vendor/fonts/tabler-icons.css"/>
+    <link rel="stylesheet" href="../../../assets/vendor/fonts/flag-icons.css" />
 
     <!-- Core CSS -->
-    <link rel="stylesheet" href="../../assets/vendor/css/rtl/core.css" class="template-customizer-core-css" />
-    <link rel="stylesheet" href="../../assets/vendor/css/rtl/theme-default.css" class="template-customizer-theme-css" />
-    <link rel="stylesheet" href="../../assets/css/demo.css" />
+    <link rel="stylesheet" href="../../../assets/vendor/css/rtl/core.css" class="template-customizer-core-css" />
+    <link rel="stylesheet" href="../../../assets/vendor/css/rtl/theme-default.css" class="template-customizer-theme-css" />
+    <link rel="stylesheet" href="../../../assets/css/demo.css" />
     
     <!-- Vendors CSS -->
-    <link rel="stylesheet" href="../../assets/vendor/libs/node-waves/node-waves.css" />
-    <link rel="stylesheet" href="../../assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css" />
-    <link rel="stylesheet" href="../../assets/vendor/libs/typeahead-js/typeahead.css" /> 
+    <link rel="stylesheet" href="../../../assets/vendor/libs/node-waves/node-waves.css" />
+    <link rel="stylesheet" href="../../../assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css" />
+    <link rel="stylesheet" href="../../../assets/vendor/libs/typeahead-js/typeahead.css" /> 
     
 
     <!-- Page CSS -->
     
 
     <!-- Helpers -->
-    <script src="../../assets/vendor/js/helpers.js"></script>
+    <script src="../../../assets/vendor/js/helpers.js"></script>
     <!--! Template customizer & Theme config files MUST be included after core stylesheets and helpers.js in the <head> section -->
     <!--? Template customizer: To hide customizer set displayCustomizer value false in config.js.  -->
-    <script src="../../assets/vendor/js/template-customizer.js"></script>
+    <script src="../../../assets/vendor/js/template-customizer.js"></script>
     <!--? Config:  Mandatory theme config file contain global vars & default theme options, Set your preferred theme option in this file.  -->
-    <script src="../../assets/js/config.js"></script>
+    <script src="../../../assets/js/config.js"></script>
     
 </head>
 
@@ -119,7 +119,7 @@
             <!-- Connections -->
             <div class="d-flex mb-3">
               <div class="flex-shrink-0">
-                <img src="../../assets/img/icons/brands/google.png" alt="google" class="me-3" height="30">
+                <img src="../../../assets/img/icons/brands/google.png" alt="google" class="me-3" height="30">
               </div>
               <div class="flex-grow-1 row">
                 <div class="col-9">
@@ -135,7 +135,7 @@
             </div>
             <div class="d-flex mb-3">
               <div class="flex-shrink-0">
-                <img src="../../assets/img/icons/brands/slack.png" alt="slack" class="me-3" height="30">
+                <img src="../../../assets/img/icons/brands/slack.png" alt="slack" class="me-3" height="30">
               </div>
               <div class="flex-grow-1 row">
                 <div class="col-9">
@@ -151,7 +151,7 @@
             </div>
             <div class="d-flex mb-3">
               <div class="flex-shrink-0">
-                <img src="../../assets/img/icons/brands/github.png" alt="github" class="me-3" height="30">
+                <img src="../../../assets/img/icons/brands/github.png" alt="github" class="me-3" height="30">
               </div>
               <div class="flex-grow-1 row">
                 <div class="col-9">
@@ -167,7 +167,7 @@
             </div>
             <div class="d-flex mb-3">
               <div class="flex-shrink-0">
-                <img src="../../assets/img/icons/brands/mailchimp.png" alt="mailchimp" class="me-3" height="30">
+                <img src="../../../assets/img/icons/brands/mailchimp.png" alt="mailchimp" class="me-3" height="30">
               </div>
               <div class="flex-grow-1 row">
                 <div class="col-9">
@@ -183,7 +183,7 @@
             </div>
             <div class="d-flex">
               <div class="flex-shrink-0">
-                <img src="../../assets/img/icons/brands/asana.png" alt="asana" class="me-3" height="30">
+                <img src="../../../assets/img/icons/brands/asana.png" alt="asana" class="me-3" height="30">
               </div>
               <div class="flex-grow-1 row">
                 <div class="col-9">
@@ -209,7 +209,7 @@
             <!-- Social Accounts -->
             <div class="d-flex mb-3">
               <div class="flex-shrink-0">
-                <img src="../../assets/img/icons/brands/facebook.png" alt="facebook" class="me-3" height="38">
+                <img src="../../../assets/img/icons/brands/facebook.png" alt="facebook" class="me-3" height="38">
               </div>
               <div class="flex-grow-1 row">
                 <div class="col-7">
@@ -223,7 +223,7 @@
             </div>
             <div class="d-flex mb-3">
               <div class="flex-shrink-0">
-                <img src="../../assets/img/icons/brands/twitter.png" alt="twitter" class="me-3" height="38">
+                <img src="../../../assets/img/icons/brands/twitter.png" alt="twitter" class="me-3" height="38">
               </div>
               <div class="flex-grow-1 row">
                 <div class="col-7">
@@ -237,7 +237,7 @@
             </div>
             <div class="d-flex mb-3">
               <div class="flex-shrink-0">
-                <img src="../../assets/img/icons/brands/instagram.png" alt="instagram" class="me-3" height="38">
+                <img src="../../../assets/img/icons/brands/instagram.png" alt="instagram" class="me-3" height="38">
               </div>
               <div class="flex-grow-1 row">
                 <div class="col-7">
@@ -251,7 +251,7 @@
             </div>
             <div class="d-flex mb-3">
               <div class="flex-shrink-0">
-                <img src="../../assets/img/icons/brands/dribbble.png" alt="dribbble" class="me-3" height="38">
+                <img src="../../../assets/img/icons/brands/dribbble.png" alt="dribbble" class="me-3" height="38">
               </div>
               <div class="flex-grow-1 row">
                 <div class="col-7">
@@ -265,7 +265,7 @@
             </div>
             <div class="d-flex">
               <div class="flex-shrink-0">
-                <img src="../../assets/img/icons/brands/behance.png" alt="behance" class="me-3" height="38">
+                <img src="../../../assets/img/icons/brands/behance.png" alt="behance" class="me-3" height="38">
               </div>
               <div class="flex-grow-1 row">
                 <div class="col-7">
@@ -308,7 +308,7 @@
         <a href="https://themeforest.net/licenses/standard" class="footer-link me-4" target="_blank">License</a>
         <a href="https://1.envato.market/pixinvent_portfolio" target="_blank" class="footer-link me-4">More Themes</a>
         
-        <a href="../../documentation/index.html" target="_blank" class="footer-link me-4">Documentation</a>
+        <a href="../../../documentation/index.html" target="_blank" class="footer-link me-4">Documentation</a>
         
         
         <a href="https://pixinvent.ticksy.com/" target="_blank" class="footer-link d-none d-sm-inline-block">Support</a>
@@ -345,15 +345,15 @@
   <!-- Core JS -->
   <!-- build:js assets/vendor/js/core.js -->
   
-  <script src="../../assets/vendor/libs/jquery/jquery.js"></script>
-  <script src="../../assets/vendor/libs/popper/popper.js"></script>
-  <script src="../../assets/vendor/js/bootstrap.js"></script>
-  <script src="../../assets/vendor/libs/node-waves/node-waves.js"></script>
-  <script src="../../assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js"></script>
-  <script src="../../assets/vendor/libs/hammer/hammer.js"></script>
-  <script src="../../assets/vendor/libs/i18n/i18n.js"></script>
-  <script src="../../assets/vendor/libs/typeahead-js/typeahead.js"></script>
-   <script src="../../assets/vendor/js/menu.js"></script>
+  <script src="../../../assets/vendor/libs/jquery/jquery.js"></script>
+  <script src="../../../assets/vendor/libs/popper/popper.js"></script>
+  <script src="../../../assets/vendor/js/bootstrap.js"></script>
+  <script src="../../../assets/vendor/libs/node-waves/node-waves.js"></script>
+  <script src="../../../assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js"></script>
+  <script src="../../../assets/vendor/libs/hammer/hammer.js"></script>
+  <script src="../../../assets/vendor/libs/i18n/i18n.js"></script>
+  <script src="../../../assets/vendor/libs/typeahead-js/typeahead.js"></script>
+   <script src="../../../assets/vendor/js/menu.js"></script>
   
   <!-- endbuild -->
 
@@ -362,7 +362,7 @@
   
 
   <!-- Main JS -->
-  <script src="../../assets/js/main.js"></script>
+  <script src="../../../assets/js/main.js"></script>
   
 
   <!-- Page JS -->
