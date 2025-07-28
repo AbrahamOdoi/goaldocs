@@ -111,4 +111,17 @@ Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class])->
         Route::get('/permissions/my', [\App\Http\Controllers\FileController::class, 'getMyPermissions'])->name('permissions.my');
         Route::post('/permissions/preset', [\App\Http\Controllers\FileController::class, 'applyPreset'])->name('permissions.preset');
     });
+
+    // External Sharing Routes
+    Route::prefix('shares')->name('shares.')->group(function () {
+        Route::post('/create', [\App\Http\Controllers\ExternalShareController::class, 'createShare'])->name('create');
+        Route::get('/my', [\App\Http\Controllers\ExternalShareController::class, 'getMyShares'])->name('my');
+        Route::delete('/revoke/{share}', [\App\Http\Controllers\ExternalShareController::class, 'revokeShare'])->name('revoke');
+    });
+});
+
+// Public share access routes (no auth required)
+Route::prefix('shared')->name('shared.')->group(function () {
+    Route::get('/{token}', [\App\Http\Controllers\ExternalShareController::class, 'accessShared'])->name('access');
+    Route::get('/{token}/download', [\App\Http\Controllers\ExternalShareController::class, 'downloadShared'])->name('download');
 });

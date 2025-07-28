@@ -50,6 +50,12 @@
         <div data-i18n="Files">Files</div>
       </a>
     </li>
+    <li class="menu-item">
+      <a href="javascript:void(0);" class="menu-link" onclick="showMyShares()">
+        <i class="menu-icon tf-icons ti ti-share"></i>
+        <div data-i18n="Shares">Shares</div>
+      </a>
+    </li>
 
     <!-- Apps & Pages -->
     <li class="menu-header small text-uppercase">

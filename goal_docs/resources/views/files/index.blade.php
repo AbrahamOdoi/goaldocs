@@ -177,6 +177,9 @@
                                                         <li><a class="dropdown-item" href="#" onclick="managePermissions('folder', {{ $folder->id }}, '{{ $folder->name }}')">
                                                             <i class="ti ti-lock me-2"></i>Permissions
                                                         </a></li>
+                                                        <li><a class="dropdown-item" href="#" onclick="shareResource('folder', {{ $folder->id }}, '{{ $folder->name }}')">
+                                                            <i class="ti ti-share me-2"></i>Share
+                                                        </a></li>
                                                         <li><hr class="dropdown-divider"></li>
                                                         <li><a class="dropdown-item text-danger" href="#" onclick="deleteFolder({{ $folder->id }})">
                                                             <i class="ti ti-trash me-2"></i>Delete
@@ -227,6 +230,9 @@
                                                         </a></li>
                                                         <li><a class="dropdown-item" href="#" onclick="managePermissions('file', {{ $file->id }}, '{{ $file->name }}')">
                                                             <i class="ti ti-lock me-2"></i>Permissions
+                                                        </a></li>
+                                                        <li><a class="dropdown-item" href="#" onclick="shareResource('file', {{ $file->id }}, '{{ $file->name }}')">
+                                                            <i class="ti ti-share me-2"></i>Share
                                                         </a></li>
                                                         <li><hr class="dropdown-divider"></li>
                                                         <li><a class="dropdown-item text-danger" href="#" onclick="deleteFile({{ $file->id }})">
@@ -446,6 +452,184 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary" onclick="addPermission()">Add Permission</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Shares Management Modal -->
+<div class="modal fade" id="sharesModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="ti ti-share me-2"></i>
+                    My Shares
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="sharesContent">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading your shares...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Share Modal -->
+<div class="modal fade" id="shareModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="ti ti-share me-2"></i>
+                    Share: <span id="shareResourceName"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="shareForm">
+                    <!-- Share Type -->
+                    <div class="mb-3">
+                        <label class="form-label">Share Type</label>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="share_type" id="shareTypeLink" value="link" checked>
+                                    <label class="form-check-label" for="shareTypeLink">
+                                        <i class="ti ti-link me-1"></i>Public Link
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="share_type" id="shareTypeEmail" value="email">
+                                    <label class="form-check-label" for="shareTypeEmail">
+                                        <i class="ti ti-mail me-1"></i>Email
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="share_type" id="shareTypeWhatsapp" value="whatsapp">
+                                    <label class="form-check-label" for="shareTypeWhatsapp">
+                                        <i class="ti ti-brand-whatsapp me-1"></i>WhatsApp
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recipient Information (for email/whatsapp) -->
+                    <div id="recipientInfo" class="mb-3" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">Recipient Name</label>
+                                <input type="text" class="form-control" name="recipient_name" placeholder="Enter recipient name">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Recipient Email</label>
+                                <input type="email" class="form-control" name="recipient_email" placeholder="Enter recipient email">
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <label class="form-label">Recipient Phone</label>
+                                <input type="text" class="form-control" name="recipient_phone" placeholder="Enter recipient phone">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Access Controls -->
+                    <div class="mb-3">
+                        <h6 class="text-uppercase text-muted mb-3">Access Controls</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="passwordProtected" name="password_protected">
+                                    <label class="form-check-label" for="passwordProtected">
+                                        Password Protected
+                                    </label>
+                                </div>
+                                <div id="passwordField" class="mt-2" style="display: none;">
+                                    <input type="password" class="form-control" name="password" placeholder="Enter password" minlength="4">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Expires At</label>
+                                <input type="datetime-local" class="form-control" name="expires_at">
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <label class="form-label">Max Downloads</label>
+                                <input type="number" class="form-control" name="max_downloads" placeholder="Leave empty for unlimited" min="1">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Permissions -->
+                    <div class="mb-3">
+                        <h6 class="text-uppercase text-muted mb-3">Permissions</h6>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="sharePermView" name="permissions[view]" checked>
+                                    <label class="form-check-label" for="sharePermView">
+                                        <i class="ti ti-eye me-1"></i>View
+                                    </label>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="sharePermDownload" name="permissions[download]" checked>
+                                    <label class="form-check-label" for="sharePermDownload">
+                                        <i class="ti ti-download me-1"></i>Download
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="sharePermEdit" name="permissions[edit]">
+                                    <label class="form-check-label" for="sharePermEdit">
+                                        <i class="ti ti-edit me-1"></i>Edit
+                                    </label>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="sharePermUpload" name="permissions[upload]">
+                                    <label class="form-check-label" for="sharePermUpload">
+                                        <i class="ti ti-upload me-1"></i>Upload
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="sharePermDelete" name="permissions[delete]">
+                                    <label class="form-check-label" for="sharePermDelete">
+                                        <i class="ti ti-trash me-1"></i>Delete
+                                    </label>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="sharePermReshare" name="permissions[reshare]">
+                                    <label class="form-check-label" for="sharePermReshare">
+                                        <i class="ti ti-share me-1"></i>Reshare
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <input type="hidden" id="shareResourceType" name="resource_type">
+                    <input type="hidden" id="shareResourceId" name="resource_id">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="createShare()">Create Share</button>
             </div>
         </div>
     </div>
@@ -1162,6 +1346,268 @@ $(document).ready(function() {
          });
      });
 });
+
+// Share functionality
+function shareResource(type, id, name) {
+    document.getElementById('shareResourceType').value = type;
+    document.getElementById('shareResourceId').value = id;
+    document.getElementById('shareResourceName').textContent = name;
+    
+    // Reset form
+    document.getElementById('shareForm').reset();
+    document.getElementById('recipientInfo').style.display = 'none';
+    document.getElementById('passwordField').style.display = 'none';
+    
+    // Show modal
+    new bootstrap.Modal(document.getElementById('shareModal')).show();
+}
+
+// Handle share type changes
+document.addEventListener('DOMContentLoaded', function() {
+    const shareTypeInputs = document.querySelectorAll('input[name="share_type"]');
+    const recipientInfo = document.getElementById('recipientInfo');
+    
+    shareTypeInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            if (this.value === 'link') {
+                recipientInfo.style.display = 'none';
+            } else {
+                recipientInfo.style.display = 'block';
+            }
+        });
+    });
+    
+    // Handle password protection toggle
+    const passwordProtected = document.getElementById('passwordProtected');
+    const passwordField = document.getElementById('passwordField');
+    
+    passwordProtected.addEventListener('change', function() {
+        if (this.checked) {
+            passwordField.style.display = 'block';
+        } else {
+            passwordField.style.display = 'none';
+        }
+    });
+});
+
+function showMyShares() {
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('sharesModal'));
+    modal.show();
+    
+    // Load shares
+    loadMyShares();
+}
+
+function loadMyShares() {
+    fetch('{{ route("shares.my") }}', {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            displayShares(data.shares);
+        } else {
+            showAlert('error', 'Failed to load shares');
+        }
+    })
+    .catch(error => {
+        showAlert('error', 'Failed to load shares: ' + error.message);
+    });
+}
+
+function displayShares(shares) {
+    const container = document.getElementById('sharesContent');
+    
+    if (shares.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-4">
+                <i class="ti ti-share-off display-1 text-muted mb-3"></i>
+                <h5>No shares yet</h5>
+                <p class="text-muted">You haven't created any shares yet. Use the "Share" button on files or folders to get started.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '<div class="table-responsive"><table class="table table-hover">';
+    html += `
+        <thead>
+            <tr>
+                <th>Resource</th>
+                <th>Type</th>
+                <th>Recipient</th>
+                <th>Status</th>
+                <th>Views</th>
+                <th>Downloads</th>
+                <th>Created</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+    `;
+    
+    shares.forEach(share => {
+        const statusClass = share.is_valid ? 'success' : 'danger';
+        const statusText = share.is_valid ? 'Active' : 'Inactive';
+        
+        html += `
+            <tr>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <i class="ti ti-${share.resource_type === 'file' ? 'file' : 'folder'} me-2"></i>
+                        <div>
+                            <strong>${share.resource_name}</strong>
+                            ${share.password_protected ? '<i class="ti ti-lock text-warning ms-1"></i>' : ''}
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <span class="badge bg-label-${share.share_type === 'link' ? 'primary' : share.share_type === 'email' ? 'info' : 'success'}">
+                        ${share.share_type.charAt(0).toUpperCase() + share.share_type.slice(1)}
+                    </span>
+                </td>
+                <td>
+                    ${share.recipient_name || share.recipient_email || share.recipient_phone || 'Public Link'}
+                </td>
+                <td>
+                    <span class="badge bg-label-${statusClass}">${statusText}</span>
+                </td>
+                <td>${share.view_count}</td>
+                <td>${share.download_count}</td>
+                <td>${new Date(share.created_at).toLocaleDateString()}</td>
+                <td>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="ti ti-dots-vertical"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="${share.share_url}" target="_blank">
+                                <i class="ti ti-external-link me-2"></i>View
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="copyShareUrl('${share.share_url}')">
+                                <i class="ti ti-copy me-2"></i>Copy URL
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="#" onclick="revokeShare(${share.id})">
+                                <i class="ti ti-trash me-2"></i>Revoke
+                            </a></li>
+                        </ul>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+    
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
+
+function copyShareUrl(url) {
+    navigator.clipboard.writeText(url).then(() => {
+        showAlert('success', 'Share URL copied to clipboard!');
+    }).catch(() => {
+        showAlert('error', 'Failed to copy URL');
+    });
+}
+
+function revokeShare(shareId) {
+    if (!confirm('Are you sure you want to revoke this share? This action cannot be undone.')) {
+        return;
+    }
+    
+    fetch(`{{ url('shares/revoke') }}/${shareId}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', 'Share revoked successfully');
+            loadMyShares(); // Reload the list
+        } else {
+            showAlert('error', data.error || 'Failed to revoke share');
+        }
+    })
+    .catch(error => {
+        showAlert('error', 'Failed to revoke share: ' + error.message);
+    });
+}
+
+function createShare() {
+    const form = document.getElementById('shareForm');
+    const formData = new FormData(form);
+    
+    // Convert form data to JSON
+    const data = {};
+    formData.forEach((value, key) => {
+        if (key.includes('[')) {
+            // Handle nested permissions
+            const [parent, child] = key.replace(']', '').split('[');
+            if (!data[parent]) data[parent] = {};
+            data[parent][child] = value === 'on' || value === 'true';
+        } else {
+            data[key] = value;
+        }
+    });
+    
+    // Handle checkboxes
+    data.password_protected = document.getElementById('passwordProtected').checked;
+    data.permissions = {
+        view: document.getElementById('sharePermView').checked,
+        download: document.getElementById('sharePermDownload').checked,
+        edit: document.getElementById('sharePermEdit').checked,
+        upload: document.getElementById('sharePermUpload').checked,
+        delete: document.getElementById('sharePermDelete').checked,
+        reshare: document.getElementById('sharePermReshare').checked,
+        manage: false // External shares should never have manage permission
+    };
+    
+    // Show loading
+    showLoading();
+    
+    fetch('{{ route("shares.create") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideLoading();
+        if (data.success) {
+            showAlert('success', data.message);
+            
+            // If it's a link share, show the share URL
+            if (data.share.share_type === 'link') {
+                const shareUrl = data.share.share_url;
+                showAlert('info', `Share URL: ${shareUrl}`);
+                
+                // Copy to clipboard
+                navigator.clipboard.writeText(shareUrl).then(() => {
+                    showAlert('success', 'Share URL copied to clipboard!');
+                });
+            }
+            
+            // Close modal
+            bootstrap.Modal.getInstance(document.getElementById('shareModal')).hide();
+        } else {
+            showAlert('error', data.error || 'Failed to create share');
+        }
+    })
+    .catch(error => {
+        hideLoading();
+        showAlert('error', 'Failed to create share: ' + error.message);
+    });
+}
 </script>
 
 <!-- Core JS -->
