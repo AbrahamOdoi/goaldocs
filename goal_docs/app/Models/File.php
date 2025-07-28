@@ -68,6 +68,30 @@ class File extends Model
     }
 
     /**
+     * Get all tags for this file
+     */
+    public function tags(): HasMany
+    {
+        return $this->hasMany(FileTag::class);
+    }
+
+    /**
+     * Get all favorites for this file
+     */
+    public function favorites(): HasMany
+    {
+        return $this->hasMany(UserFavorite::class);
+    }
+
+    /**
+     * Get all activities for this file
+     */
+    public function activities(): HasMany
+    {
+        return $this->hasMany(RecentActivity::class);
+    }
+
+    /**
      * Get the current version of this file
      */
     public function currentVersion(): BelongsTo
@@ -229,11 +253,11 @@ class File extends Model
     {
         // Delete all versions from storage
         foreach ($this->versions as $version) {
-            Storage::delete($version->file_path);
+            Storage::disk('local')->delete($version->file_path);
         }
         
         // Delete current file from storage
-        Storage::delete($this->file_path);
+        Storage::disk('local')->delete($this->file_path);
         
         // Delete from database
         return $this->delete();

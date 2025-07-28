@@ -82,6 +82,22 @@ class Folder extends Model
     }
 
     /**
+     * Get all favorites for this folder
+     */
+    public function favorites(): HasMany
+    {
+        return $this->hasMany(UserFavorite::class);
+    }
+
+    /**
+     * Get all activities for this folder
+     */
+    public function activities(): HasMany
+    {
+        return $this->hasMany(RecentActivity::class);
+    }
+
+    /**
      * Scope for filtering by user type
      */
     public function scopeForUserType($query, $userType)

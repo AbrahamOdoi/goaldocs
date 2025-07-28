@@ -222,6 +222,12 @@
                                                                 <i class="ti ti-eye me-2"></i>Preview
                                                             </a></li>
                                                         @endif
+                                                        <li><a class="dropdown-item" href="#" onclick="toggleFavorite({{ $file->id }}, null)">
+                                                            <i class="ti ti-star me-2"></i>Favorite
+                                                        </a></li>
+                                                        <li><a class="dropdown-item" href="#" onclick="showTagModal({{ $file->id }})">
+                                                            <i class="ti ti-tag me-2"></i>Add Tag
+                                                        </a></li>
                                                         <li><a class="dropdown-item" href="#" onclick="renameFile({{ $file->id }}, '{{ $file->name }}')">
                                                             <i class="ti ti-edit me-2"></i>Rename
                                                         </a></li>
@@ -1608,6 +1614,110 @@ function createShare() {
         showAlert('error', 'Failed to create share: ' + error.message);
     });
 }
+
+// Tag and Favorites functionality
+function showTagModal(fileId) {
+    currentFileId = fileId;
+    document.getElementById('tagFileId').value = fileId;
+    document.getElementById('tagName').value = '';
+    document.getElementById('tagSuggestions').innerHTML = '';
+    
+    const modal = new bootstrap.Modal(document.getElementById('tagModal'));
+    modal.show();
+}
+
+function addTag() {
+    const formData = new FormData(document.getElementById('tagForm'));
+    
+    fetch('{{ route("search.tags.add") }}', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            file_id: formData.get('file_id'),
+            tag_name: formData.get('tag_name'),
+            color: formData.get('color')
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('tagModal')).hide();
+            location.reload();
+        } else {
+            showAlert('error', data.error || 'Failed to add tag');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('error', 'Failed to add tag');
+    });
+}
+
+function toggleFavorite(fileId, folderId) {
+    fetch('{{ route("search.favorites.toggle") }}', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            file_id: fileId,
+            folder_id: folderId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert('error', data.error || 'Failed to toggle favorite');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('error', 'Failed to toggle favorite');
+    });
+}
+
+// Tag suggestions
+document.addEventListener('DOMContentLoaded', function() {
+    const tagNameInput = document.getElementById('tagName');
+    if (tagNameInput) {
+        tagNameInput.addEventListener('input', function() {
+            const query = this.value;
+            if (query.length < 2) {
+                document.getElementById('tagSuggestions').innerHTML = '';
+                return;
+            }
+            
+            fetch(`{{ route('search.tag-suggestions') }}?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(suggestions => {
+                    const container = document.getElementById('tagSuggestions');
+                    container.innerHTML = '';
+                    
+                    suggestions.forEach(suggestion => {
+                        const div = document.createElement('div');
+                        div.className = 'badge me-1 mb-1';
+                        div.style.backgroundColor = suggestion.color;
+                        div.style.color = 'white';
+                        div.style.cursor = 'pointer';
+                        div.textContent = suggestion.tag_name;
+                        div.onclick = () => {
+                            document.getElementById('tagName').value = suggestion.tag_name;
+                            document.getElementById('tagColor').value = suggestion.color;
+                            container.innerHTML = '';
+                        };
+                        container.appendChild(div);
+                    });
+                });
+        });
+    }
+});
 </script>
 
 <!-- Core JS -->
@@ -1716,5 +1826,35 @@ function createShare() {
     border-top: 1px solid rgba(0, 0, 0, 0.15);
 }
 </style>
+<!-- Tag Modal -->
+<div class="modal fade" id="tagModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Tag</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="tagForm">
+                    <input type="hidden" id="tagFileId" name="file_id">
+                    <div class="mb-3">
+                        <label for="tagName" class="form-label">Tag Name</label>
+                        <input type="text" class="form-control" id="tagName" name="tag_name" required>
+                        <div id="tagSuggestions" class="mt-2"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="tagColor" class="form-label">Tag Color</label>
+                        <input type="color" class="form-control form-control-color" id="tagColor" name="color" value="#667eea">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="addTag()">Add Tag</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 </body>
 </html> 

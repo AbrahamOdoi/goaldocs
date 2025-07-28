@@ -98,18 +98,22 @@ Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class])->
         Route::get('/search', [\App\Http\Controllers\FileController::class, 'search'])->name('search');
         Route::get('/{file}/download', [\App\Http\Controllers\FileController::class, 'download'])->name('download');
         Route::get('/{file}/preview', [\App\Http\Controllers\FileController::class, 'preview'])->name('preview');
-        Route::put('/{file}/rename', [\App\Http\Controllers\FileController::class, 'rename'])->name('rename');
-        Route::put('/{file}/move', [\App\Http\Controllers\FileController::class, 'move'])->name('move');
-        Route::delete('/{file}', [\App\Http\Controllers\FileController::class, 'destroy'])->name('destroy');
-        Route::put('/folders/{folder}/rename', [\App\Http\Controllers\FileController::class, 'renameFolder'])->name('folders.rename');
-        Route::delete('/folders/{folder}', [\App\Http\Controllers\FileController::class, 'deleteFolder'])->name('folders.destroy');
-        
-        // Permission Management Routes
-        Route::get('/permissions', [\App\Http\Controllers\FileController::class, 'getPermissions'])->name('permissions.get');
-        Route::post('/permissions/assign', [\App\Http\Controllers\FileController::class, 'assignPermissions'])->name('permissions.assign');
-        Route::delete('/permissions/remove', [\App\Http\Controllers\FileController::class, 'removePermissions'])->name('permissions.remove');
-        Route::get('/permissions/my', [\App\Http\Controllers\FileController::class, 'getMyPermissions'])->name('permissions.my');
-        Route::post('/permissions/preset', [\App\Http\Controllers\FileController::class, 'applyPreset'])->name('permissions.preset');
+        Route::delete('/{file}', [\App\Http\Controllers\FileController::class, 'deleteFile'])->name('delete');
+        Route::delete('/folders/{folder}', [\App\Http\Controllers\FileController::class, 'deleteFolder'])->name('folders.delete');
+        Route::post('/{file}/permissions', [\App\Http\Controllers\FileController::class, 'assignPermissions'])->name('permissions.assign');
+        Route::delete('/{file}/permissions/{permission}', [\App\Http\Controllers\FileController::class, 'removePermission'])->name('permissions.remove');
+    });
+
+    // Search & Organization Routes
+    Route::prefix('search')->name('search.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\SearchController::class, 'index'])->name('index');
+        Route::get('/tag-suggestions', [\App\Http\Controllers\SearchController::class, 'getTagSuggestions'])->name('tag-suggestions');
+        Route::post('/tags', [\App\Http\Controllers\SearchController::class, 'addTag'])->name('tags.add');
+        Route::delete('/tags/{tag}', [\App\Http\Controllers\SearchController::class, 'removeTag'])->name('tags.remove');
+        Route::post('/favorites', [\App\Http\Controllers\SearchController::class, 'toggleFavorite'])->name('favorites.toggle');
+        Route::get('/favorites', [\App\Http\Controllers\SearchController::class, 'getFavorites'])->name('favorites.list');
+        Route::get('/activities', [\App\Http\Controllers\SearchController::class, 'getRecentActivities'])->name('activities.list');
+        Route::get('/popular-tags', [\App\Http\Controllers\SearchController::class, 'getPopularTags'])->name('popular-tags');
     });
 
     // External Sharing Routes

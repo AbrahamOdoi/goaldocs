@@ -162,11 +162,13 @@ class ExternalShareController extends Controller
                              ->first();
 
         if (!$share) {
-            abort(404, 'Share not found');
+            return response()->view('shared.not-found', [], 404);
         }
 
         if (!$share->is_valid) {
-            abort(410, 'Share has expired or reached download limit');
+            return response()->view('shared.expired', [
+                'share' => $share
+            ], 410);
         }
 
         // Increment view count
@@ -200,11 +202,13 @@ class ExternalShareController extends Controller
                              ->first();
 
         if (!$share || !$share->file) {
-            abort(404, 'File not found');
+            return response()->view('shared.not-found', [], 404);
         }
 
         if (!$share->is_valid) {
-            abort(410, 'Share has expired or reached download limit');
+            return response()->view('shared.expired', [
+                'share' => $share
+            ], 410);
         }
 
         if (!$share->hasPermission('download')) {
@@ -224,9 +228,16 @@ class ExternalShareController extends Controller
 
         // Return file download
         $file = $share->file;
-        $path = Storage::path($file->file_path);
         
-        return response()->download($path, $file->original_name);
+        if (!Storage::disk('local')->exists($file->file_path)) {
+            abort(404, 'File not found');
+        }
+        
+        $fileContent = Storage::disk('local')->get($file->file_path);
+        
+        return response($fileContent)
+            ->header('Content-Type', $file->mime_type)
+            ->header('Content-Disposition', 'attachment; filename="' . $file->original_name . '"');
     }
 
     /**

@@ -51,6 +51,12 @@
       </a>
     </li>
     <li class="menu-item">
+      <a href="{{ route('search.index') }}" class="menu-link">
+        <i class="menu-icon tf-icons ti ti-search"></i>
+        <div data-i18n="Search">Search & Organize</div>
+      </a>
+    </li>
+    <li class="menu-item">
       <a href="javascript:void(0);" class="menu-link" onclick="showMyShares()">
         <i class="menu-icon tf-icons ti ti-share"></i>
         <div data-i18n="Shares">Shares</div>

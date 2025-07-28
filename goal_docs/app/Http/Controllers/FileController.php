@@ -6,6 +6,7 @@ use App\Models\File;
 use App\Models\Folder;
 use App\Models\FileVersion;
 use App\Models\FilePermission;
+use App\Models\RecentActivity;
 use App\Models\User;
 use App\Models\Position;
 use App\Models\Department;
@@ -167,6 +168,17 @@ class FileController extends Controller
             'Automatic permissions for folder creator'
         );
 
+        // Log activity
+        RecentActivity::log(
+            $user->id,
+            $user->user_type,
+            $user->type_name,
+            'upload',
+            null,
+            $folder->id,
+            ['folder_name' => $folder->name]
+        );
+
         return response()->json([
             'success' => true,
             'folder' => $folder,
@@ -226,7 +238,7 @@ class FileController extends Controller
                 }
                     
                 if ($existingFile) {
-                    Storage::delete($filePath); // Clean up uploaded file
+                    Storage::disk('local')->delete($filePath); // Clean up uploaded file
                     $errors[] = "File '{$uploadedFile->getClientOriginalName()}' already exists as '{$existingFile->name}'";
                     continue;
                 }
@@ -277,6 +289,17 @@ class FileController extends Controller
                     'Automatic permissions for file uploader'
                 );
 
+                // Log activity
+                RecentActivity::log(
+                    $user->id,
+                    $user->user_type,
+                    $user->type_name,
+                    'upload',
+                    $file->id,
+                    null,
+                    ['file_name' => $file->original_name, 'file_size' => $file->file_size]
+                );
+
                 $uploadedFiles[] = $file;
 
             } catch (\Exception $e) {
@@ -299,14 +322,36 @@ class FileController extends Controller
     {
         $this->checkUserAccess();
         
+        $user = Auth::user();
+        
+        // Check if user has permission to download this file
+        if (!$this->permissionService->userHasPermission($user, $file, 'download')) {
+            abort(403, 'Access denied');
+        }
+        
         // Update last accessed timestamp
         $file->updateLastAccessed();
         
-        if (!Storage::exists($file->file_path)) {
+        if (!Storage::disk('local')->exists($file->file_path)) {
             abort(404, 'File not found');
         }
 
-        return Storage::download($file->file_path, $file->original_name);
+        // Log activity
+        RecentActivity::log(
+            $user->id,
+            $user->user_type,
+            $user->type_name,
+            'download',
+            $file->id,
+            null,
+            ['file_name' => $file->original_name]
+        );
+
+        $fileContent = Storage::disk('local')->get($file->file_path);
+        
+        return response($fileContent)
+            ->header('Content-Type', $file->mime_type)
+            ->header('Content-Disposition', 'attachment; filename="' . $file->original_name . '"');
     }
 
     /**
@@ -316,14 +361,43 @@ class FileController extends Controller
     {
         $this->checkUserAccess();
         
+        $user = Auth::user();
+        
+        // Check if user has permission to view this file
+        if (!$this->permissionService->userHasPermission($user, $file, 'view')) {
+            abort(403, 'Access denied');
+        }
+        
         // Update last accessed timestamp
         $file->updateLastAccessed();
         
-        if (!Storage::exists($file->file_path)) {
+        if (!Storage::disk('local')->exists($file->file_path)) {
             abort(404, 'File not found');
         }
 
-        $fileContent = Storage::get($file->file_path);
+        // Log activity
+        RecentActivity::log(
+            $user->id,
+            $user->user_type,
+            $user->type_name,
+            'view',
+            $file->id,
+            null,
+            ['file_name' => $file->original_name]
+        );
+
+        // For images, serve them directly with proper headers
+        if ($file->is_image) {
+            $fileContent = Storage::disk('local')->get($file->file_path);
+            
+            return response($fileContent)
+                ->header('Content-Type', $file->mime_type)
+                ->header('Content-Disposition', 'inline; filename="' . $file->original_name . '"')
+                ->header('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+        }
+        
+        // For other file types, serve as download
+        $fileContent = Storage::disk('local')->get($file->file_path);
         
         return response($fileContent)
             ->header('Content-Type', $file->mime_type)
@@ -337,7 +411,25 @@ class FileController extends Controller
     {
         $this->checkUserAccess();
         
+        $user = Auth::user();
+        
+        // Check if user has permission to delete this file
+        if (!$this->permissionService->userHasPermission($user, $file, 'delete')) {
+            abort(403, 'Access denied');
+        }
+        
         try {
+            // Log activity before deletion
+            RecentActivity::log(
+                $user->id,
+                $user->user_type,
+                $user->type_name,
+                'delete',
+                $file->id,
+                null,
+                ['file_name' => $file->original_name]
+            );
+            
             $file->deleteFile();
             return response()->json(['success' => true, 'message' => 'File deleted successfully']);
         } catch (\Exception $e) {
@@ -352,6 +444,13 @@ class FileController extends Controller
     {
         $this->checkUserAccess();
         
+        $user = Auth::user();
+        
+        // Check if user has permission to delete this folder
+        if (!$this->permissionService->userHasPermission($user, $folder, 'delete')) {
+            abort(403, 'Access denied');
+        }
+        
         try {
             // Check if folder has contents
             $hasFiles = $folder->files()->exists();
@@ -360,6 +459,17 @@ class FileController extends Controller
             if ($hasFiles || $hasSubfolders) {
                 return response()->json(['error' => 'Cannot delete folder that contains files or subfolders'], 400);
             }
+            
+            // Log activity before deletion
+            RecentActivity::log(
+                $user->id,
+                $user->user_type,
+                $user->type_name,
+                'delete',
+                null,
+                $folder->id,
+                ['folder_name' => $folder->name]
+            );
             
             $folder->delete();
             return response()->json(['success' => true, 'message' => 'Folder deleted successfully']);
