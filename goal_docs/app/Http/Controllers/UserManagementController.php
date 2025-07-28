@@ -54,9 +54,10 @@ class UserManagementController extends Controller
         $columns = ['name', 'email', 'phone', 'positions.name', 'email_verified_at'];
         $orderBy = $columns[$orderColumn] ?? 'name';
 
-        // Base query
+        // Base query with proper organizational isolation
         $query = User::with(['positions.department'])
             ->where('type', $currentUser->type)
+            ->where('type_name', $currentUser->type_name)
             ->where('id', '!=', $currentUser->id);
 
         // Apply search if provided
@@ -121,7 +122,7 @@ class UserManagementController extends Controller
 
         return response()->json([
             'draw' => intval($draw),
-            'recordsTotal' => User::where('type', $currentUser->type)->where('id', '!=', $currentUser->id)->count(),
+            'recordsTotal' => User::where('type', $currentUser->type)->where('type_name', $currentUser->type_name)->where('id', '!=', $currentUser->id)->count(),
             'recordsFiltered' => $totalRecords,
             'data' => $data
         ]);
@@ -132,9 +133,10 @@ class UserManagementController extends Controller
         $this->checkUserAccess();
         $currentUser = Auth::user();
         
-        // Get departments and positions for the current user type
+        // Get departments and positions for the current user's organization
         $departments = Department::with('activePositions')
             ->forUserType($currentUser->type)
+            ->where('type', $currentUser->type_name)
             ->active()
             ->get();
 
@@ -150,8 +152,8 @@ class UserManagementController extends Controller
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
-            'phone' => 'required|string|max:20|unique:users,phone',
-            'position_id' => 'required|exists:positions,id',
+            'phone' => 'required|string|max:20',
+            'position_id' => 'nullable|exists:positions,id',
             'is_admin' => 'boolean',
             'start_date' => 'nullable|date',
         ]);
@@ -166,6 +168,7 @@ class UserManagementController extends Controller
             'phone' => $request->phone,
             'password' => Hash::make($password),
             'type' => $currentUser->type,
+            'type_name' => $currentUser->type_name,
             'is_admin' => $request->boolean('is_admin'),
             // Don't auto-verify - users must complete OTP verification on first login
         ]);
@@ -173,18 +176,21 @@ class UserManagementController extends Controller
         // Debug logging
         Log::info('Created user: ' . $user->email . ', email_verified_at: ' . ($user->email_verified_at ? $user->email_verified_at->toDateTimeString() : 'NULL'));
 
-        // Assign position
-        $position = Position::findOrFail($request->position_id);
-        $user->positions()->attach($position->id, [
-            'start_date' => $request->start_date ?? now(),
-            'is_primary' => true, // First position is primary
-            'is_active' => true,
-        ]);
+        // Assign position if provided
+        if ($request->position_id) {
+            $position = Position::findOrFail($request->position_id);
+            $user->positions()->attach($position->id, [
+                'start_date' => $request->start_date ?? now(),
+                'is_primary' => true, // First position is primary
+                'is_active' => true,
+            ]);
+            AuditLogger::log("User {$user->email} created and assigned to position {$position->name}");
+        } else {
+            AuditLogger::log("User {$user->email} created without position assignment");
+        }
 
         // Send credentials via email and SMS
         $this->sendCredentials($user, $password);
-
-        AuditLogger::log("User {$user->email} created and assigned to position {$position->name}");
 
         return redirect()->route('users.index')
             ->with('success', 'User created successfully and credentials have been sent!');
@@ -196,12 +202,13 @@ class UserManagementController extends Controller
         $currentUser = Auth::user();
         
         // Ensure user belongs to same organization/type
-        if ($user->type !== $currentUser->type) {
+        if ($user->type !== $currentUser->type || $user->type_name !== $currentUser->type_name) {
             abort(403);
         }
 
         $departments = Department::with('activePositions')
             ->forUserType($currentUser->type)
+            ->where('type', $currentUser->type_name)
             ->active()
             ->get();
 
@@ -216,7 +223,7 @@ class UserManagementController extends Controller
         $currentUser = Auth::user();
         
         // Ensure user belongs to same organization/type
-        if ($user->type !== $currentUser->type) {
+        if ($user->type !== $currentUser->type || $user->type_name !== $currentUser->type_name) {
             abort(403);
         }
 
@@ -224,8 +231,8 @@ class UserManagementController extends Controller
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'email' => ['required', 'email', Rule::unique('users')->ignore($user->id)],
-            'phone' => ['required', 'string', 'max:20', Rule::unique('users')->ignore($user->id)],
-            'position_id' => 'required|exists:positions,id',
+            'phone' => ['required', 'string', 'max:20'],
+            'position_id' => 'nullable|exists:positions,id',
             'is_admin' => 'boolean',
             'start_date' => 'nullable|date',
         ]);
@@ -237,21 +244,27 @@ class UserManagementController extends Controller
             'is_admin' => $request->boolean('is_admin'),
         ]);
 
-        // Update position assignment
-        $position = Position::findOrFail($request->position_id);
-        
-        // Remove current positions and assign new one
-        $user->positions()->updateExistingPivot($user->positions->first()->id ?? 0, ['is_active' => false]);
-        
-        $user->positions()->syncWithoutDetaching([
-            $position->id => [
-                'start_date' => $request->start_date ?? now(),
-                'is_primary' => true,
-                'is_active' => true,
-            ]
-        ]);
-
-        AuditLogger::log("User {$user->email} updated and assigned to position {$position->name}");
+        // Update position assignment if provided
+        if ($request->position_id) {
+            $position = Position::findOrFail($request->position_id);
+            
+            // Remove current positions and assign new one
+            $user->positions()->updateExistingPivot($user->positions->first()->id ?? 0, ['is_active' => false]);
+            
+            $user->positions()->syncWithoutDetaching([
+                $position->id => [
+                    'start_date' => $request->start_date ?? now(),
+                    'is_primary' => true,
+                    'is_active' => true,
+                ]
+            ]);
+            
+            AuditLogger::log("User {$user->email} updated and assigned to position {$position->name}");
+        } else {
+            // Remove all positions if no position is selected
+            $user->positions()->updateExistingPivot($user->positions->pluck('id'), ['is_active' => false]);
+            AuditLogger::log("User {$user->email} updated with no position assignment");
+        }
 
         return redirect()->route('users.index')
             ->with('success', 'User updated successfully!');

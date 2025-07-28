@@ -12,6 +12,7 @@ use App\Models\Department;
 use App\Services\PermissionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -147,6 +148,25 @@ class FileController extends Controller
             'created_by' => $user->id,
         ]);
 
+        // Automatically grant full permissions to the creator
+        $fullPermissions = [
+            'view' => true,
+            'download' => true,
+            'edit' => true,
+            'upload' => true,
+            'delete' => true,
+            'reshare' => true,
+            'manage' => true
+        ];
+        
+        $this->permissionService->assignPermission(
+            $folder,
+            $user,
+            $fullPermissions,
+            $user,
+            'Automatic permissions for folder creator'
+        );
+
         return response()->json([
             'success' => true,
             'folder' => $folder,
@@ -237,6 +257,25 @@ class FileController extends Controller
                     'change_notes' => 'Initial upload',
                     'is_current' => true,
                 ]);
+
+                // Automatically grant full permissions to the uploader
+                $fullPermissions = [
+                    'view' => true,
+                    'download' => true,
+                    'edit' => true,
+                    'upload' => true,
+                    'delete' => true,
+                    'reshare' => true,
+                    'manage' => true
+                ];
+                
+                $this->permissionService->assignPermission(
+                    $file,
+                    $user,
+                    $fullPermissions,
+                    $user,
+                    'Automatic permissions for file uploader'
+                );
 
                 $uploadedFiles[] = $file;
 
@@ -505,6 +544,15 @@ class FileController extends Controller
         $permissions = $this->permissionService->getResourcePermissions($resource);
         $assignableEntities = $this->permissionService->getAssignableEntities($user);
 
+        // Debug logging
+        Log::info('Assignable entities for user:', [
+            'user_id' => $user->id,
+            'user_type' => $user->type,
+            'user_type_name' => $user->type_name,
+            'entities_count' => count($assignableEntities),
+            'users_count' => $assignableEntities['users']->count() ?? 0
+        ]);
+
         return response()->json([
             'permissions' => $permissions,
             'assignable_entities' => $assignableEntities,
@@ -519,16 +567,27 @@ class FileController extends Controller
     {
         $this->checkUserAccess();
         
+        // Debug logging
+        Log::info('Permission assignment request:', [
+            'resource_type' => $request->resource_type,
+            'resource_id' => $request->resource_id,
+            'assignable_type' => $request->assignable_type,
+            'assignable_id' => $request->assignable_id,
+            'permissions' => $request->permissions,
+            'user_id' => Auth::id()
+        ]);
+        
         $validator = Validator::make($request->all(), [
             'resource_type' => 'required|in:file,folder',
             'resource_id' => 'required|integer',
-            'assignable_type' => 'required|in:user,position,department',
+            'assignable_type' => 'required|in:user,position,department,App\\Models\\User,App\\Models\\Position,App\\Models\\Department',
             'assignable_id' => 'required|integer',
             'permissions' => 'required|array',
             'notes' => 'nullable|string|max:1000',
         ]);
 
         if ($validator->fails()) {
+            Log::error('Permission assignment validation failed:', $validator->errors()->toArray());
             return response()->json(['error' => $validator->errors()->first()], 400);
         }
 
@@ -554,12 +613,15 @@ class FileController extends Controller
         $assignable = null;
         switch ($request->assignable_type) {
             case 'user':
+            case 'App\\Models\\User':
                 $assignable = User::find($request->assignable_id);
                 break;
             case 'position':
+            case 'App\\Models\\Position':
                 $assignable = Position::find($request->assignable_id);
                 break;
             case 'department':
+            case 'App\\Models\\Department':
                 $assignable = Department::find($request->assignable_id);
                 break;
         }
@@ -599,7 +661,7 @@ class FileController extends Controller
         $validator = Validator::make($request->all(), [
             'resource_type' => 'required|in:file,folder',
             'resource_id' => 'required|integer',
-            'assignable_type' => 'required|in:user,position,department',
+            'assignable_type' => 'required|in:user,position,department,App\\Models\\User,App\\Models\\Position,App\\Models\\Department',
             'assignable_id' => 'required|integer',
         ]);
 
@@ -629,12 +691,15 @@ class FileController extends Controller
         $assignable = null;
         switch ($request->assignable_type) {
             case 'user':
+            case 'App\\Models\\User':
                 $assignable = User::find($request->assignable_id);
                 break;
             case 'position':
+            case 'App\\Models\\Position':
                 $assignable = Position::find($request->assignable_id);
                 break;
             case 'department':
+            case 'App\\Models\\Department':
                 $assignable = Department::find($request->assignable_id);
                 break;
         }
@@ -708,7 +773,7 @@ class FileController extends Controller
         $validator = Validator::make($request->all(), [
             'resource_type' => 'required|in:file,folder',
             'resource_id' => 'required|integer',
-            'assignable_type' => 'required|in:user,position,department',
+            'assignable_type' => 'required|in:user,position,department,App\\Models\\User,App\\Models\\Position,App\\Models\\Department',
             'assignable_id' => 'required|integer',
             'preset' => 'required|in:view_only,read_download,contributor,editor,full_access',
         ]);
@@ -739,12 +804,15 @@ class FileController extends Controller
         $assignable = null;
         switch ($request->assignable_type) {
             case 'user':
+            case 'App\\Models\\User':
                 $assignable = User::find($request->assignable_id);
                 break;
             case 'position':
+            case 'App\\Models\\Position':
                 $assignable = Position::find($request->assignable_id);
                 break;
             case 'department':
+            case 'App\\Models\\Department':
                 $assignable = Department::find($request->assignable_id);
                 break;
         }

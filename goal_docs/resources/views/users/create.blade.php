@@ -115,10 +115,10 @@
                                             
                                             <div class="row">
                                                 <div class="col-md-8 mb-3">
-                                                    <label for="position_id" class="form-label">Position</label>
+                                                    <label for="position_id" class="form-label">Position <span class="text-muted">(Optional)</span></label>
                                                     <select class="form-select @error('position_id') is-invalid @enderror" 
-                                                            id="position_id" name="position_id" required>
-                                                        <option value="">Select a position</option>
+                                                            id="position_id" name="position_id">
+                                                        <option value="">Select a position (optional)</option>
                                                         @foreach($departments as $department)
                                                             <optgroup label="{{ $department->name }}">
                                                                 @foreach($department->activePositions as $position)

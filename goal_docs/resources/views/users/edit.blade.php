@@ -116,13 +116,13 @@
                                             
                                             <div class="row">
                                                 <div class="col-md-8 mb-3">
-                                                    <label for="position_id" class="form-label">Position</label>
+                                                    <label for="position_id" class="form-label">Position <span class="text-muted">(Optional)</span></label>
                                                     @php
                                                         $currentPositionId = $user->positions->where('pivot.is_primary', true)->first()->id ?? null;
                                                     @endphp
                                                     <select class="form-select @error('position_id') is-invalid @enderror" 
-                                                            id="position_id" name="position_id" required>
-                                                        <option value="">Select a position</option>
+                                                            id="position_id" name="position_id">
+                                                        <option value="">No position assigned</option>
                                                         @foreach($departments as $department)
                                                             <optgroup label="{{ $department->name }}">
                                                                 @foreach($department->activePositions as $position)

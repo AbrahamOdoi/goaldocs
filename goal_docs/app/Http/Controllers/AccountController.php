@@ -21,13 +21,14 @@ class AccountController extends Controller
             'lastName' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email,' . $user->id,
             'phoneNumber' => 'nullable|string|max:20',
-            'organization' => 'nullable|string|max:255',
+
         ]);
 
         $user->name = $request->firstName . ' ' . $request->lastName;
         $user->email = $request->email;
         $user->phone = $request->phoneNumber;
-        $user->type_name = $request->organization;
+        // SECURITY: Users cannot change their organization - this must be managed by admins
+        // $user->type_name = $request->organization;
         $user->save();
 
         return redirect()->route('account.settings')->with('success', 'Account updated successfully.');

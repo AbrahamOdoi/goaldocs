@@ -822,6 +822,7 @@ function displayCurrentPermissions(permissions) {
     permissions.forEach(permission => {
         const assignableName = permission.assignable.name || permission.assignable.type_name || 'Unknown';
         const assignableType = permission.assignable_type.split('\\').pop();
+        const permissionLevel = permission.permission_level || 'Custom';
         
         html += `
             <div class="d-flex justify-content-between align-items-center border rounded p-3 mb-2">
@@ -830,7 +831,7 @@ function displayCurrentPermissions(permissions) {
                         <i class="ti ti-${getAssignableIcon(assignableType)} me-2"></i>
                         ${assignableName}
                     </h6>
-                    <small class="text-muted">${assignableType} • ${permission.permission_level}</small>
+                    <small class="text-muted">${assignableType} • ${permissionLevel}</small>
                 </div>
                 <div class="d-flex gap-2">
                     <span class="badge bg-label-primary">${getPermissionSummary(permission.permissions)}</span>
@@ -855,7 +856,18 @@ function getAssignableIcon(type) {
 }
 
 function getPermissionSummary(permissions) {
-    const activePerms = Object.keys(permissions).filter(key => permissions[key]);
+    // Handle case where permissions might be a JSON string
+    let permObj = permissions;
+    if (typeof permissions === 'string') {
+        try {
+            permObj = JSON.parse(permissions);
+        } catch (e) {
+            console.error('Failed to parse permissions:', e);
+            return '0 permissions';
+        }
+    }
+    
+    const activePerms = Object.keys(permObj).filter(key => permObj[key]);
     return activePerms.length + ' permissions';
 }
 
@@ -991,10 +1003,22 @@ function removePermission(assignableType, assignableId) {
         return;
     }
     
+    // Convert full model class name to simple type name
+    let simpleType;
+    if (assignableType.includes('User')) {
+        simpleType = 'user';
+    } else if (assignableType.includes('Position')) {
+        simpleType = 'position';
+    } else if (assignableType.includes('Department')) {
+        simpleType = 'department';
+    } else {
+        simpleType = assignableType.split('\\').pop().toLowerCase();
+    }
+    
     const requestData = {
         resource_type: currentPermissionData.type,
         resource_id: currentPermissionData.id,
-        assignable_type: assignableType.split('\\').pop().toLowerCase(),
+        assignable_type: simpleType,
         assignable_id: assignableId
     };
     

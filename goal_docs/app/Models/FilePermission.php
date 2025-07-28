@@ -28,6 +28,12 @@ class FilePermission extends Model
         'is_inherited' => 'boolean',
     ];
 
+    protected $appends = [
+        'permission_level',
+        'resource',
+        'resource_type',
+    ];
+
     /**
      * Default permission structure
      */

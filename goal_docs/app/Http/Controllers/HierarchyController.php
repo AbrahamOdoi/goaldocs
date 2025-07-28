@@ -26,6 +26,7 @@ class HierarchyController extends Controller
         $userType = $user->type ?? 'organisation';
         
         $departments = Department::forUserType($userType)
+            ->where('type', $user->type_name)
             ->active()
             ->with(['positions' => function($query) {
                 $query->active()->withCount('activeUsers');
@@ -63,7 +64,7 @@ class HierarchyController extends Controller
         Department::create([
             'name' => $request->name,
             'description' => $request->description,
-            'type' => $this->getTypeForUserType($userType),
+            'type' => $user->type_name,
             'user_type' => $userType,
             'color' => $request->color,
         ]);
@@ -173,8 +174,15 @@ class HierarchyController extends Controller
             'start_date' => 'nullable|date',
         ]);
 
-        $user = User::findOrFail($request->user_id);
-        $position = Position::findOrFail($request->position_id);
+        $currentUser = Auth::user();
+        $user = User::where('id', $request->user_id)
+            ->where('type', $currentUser->type)
+            ->where('type_name', $currentUser->type_name)
+            ->firstOrFail();
+        $position = Position::whereHas('department', function($query) use ($currentUser) {
+            $query->where('user_type', $currentUser->type)
+                  ->where('type', $currentUser->type_name);
+        })->findOrFail($request->position_id);
 
         // If this is a primary position, remove primary from other positions
         if ($request->is_primary) {
@@ -199,7 +207,18 @@ class HierarchyController extends Controller
             'position_id' => 'required|exists:positions,id',
         ]);
 
-        $user = User::findOrFail($request->user_id);
+        $currentUser = Auth::user();
+        $user = User::where('id', $request->user_id)
+            ->where('type', $currentUser->type)
+            ->where('type_name', $currentUser->type_name)
+            ->firstOrFail();
+        
+        // Verify position belongs to same organization before removing
+        $position = Position::whereHas('department', function($query) use ($currentUser) {
+            $query->where('user_type', $currentUser->type)
+                  ->where('type', $currentUser->type_name);
+        })->findOrFail($request->position_id);
+        
         $user->positions()->detach($request->position_id);
 
         return response()->json(['success' => true, 'message' => 'Position removed successfully!']);
