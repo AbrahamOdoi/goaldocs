@@ -3,12 +3,20 @@
 
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, minimum-scale=0.5, maximum-scale=3.0" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="GoalDocs" />
+    <meta name="theme-color" content="#7367f0" />
     <title>File Manager - GoalDocs</title>
     <meta name="description" content="Manage your files and folders" />
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{{ asset('assets/img/favicon/favicon.ico') }}" />
+    <link rel="manifest" href="{{ asset('manifest.json') }}" />
+    <link rel="apple-touch-icon" href="{{ asset('assets/img/favicon/apple-touch-icon.png') }}" />
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('assets/img/favicon/apple-touch-icon.png') }}" />
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -86,7 +94,7 @@
                             <i class="ti ti-folder-plus me-1"></i>
                             New Folder
                         </button>
-                        <button type="button" class="btn btn-success" onclick="document.getElementById('fileInput').click()">
+                        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#uploadModal">
                             <i class="ti ti-upload me-1"></i>
                             Upload Files
                         </button>
@@ -163,22 +171,25 @@
                             </h6>
                             <div class="row mb-4">
                                 @foreach($folders as $folder)
-                                    <div class="col-xxl-2 col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+                                    <div class="col-xxl-2 col-xl-3 col-lg-4 col-md-6 col-sm-6 col-6 mb-3">
                                         <div class="card folder-card h-100" data-folder-id="{{ $folder->id }}">
-                                            <div class="card-body text-center p-3">
-                                                <div class="dropdown position-absolute top-0 end-0 mt-2 me-2">
+                                            <div class="card-body text-center p-2 p-sm-3">
+                                                <div class="dropdown position-absolute top-0 end-0 mt-1 me-1 mt-sm-2 me-sm-2">
                                                     <button class="btn btn-sm btn-icon dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                                         <i class="ti ti-dots-vertical"></i>
                                                     </button>
                                                     <ul class="dropdown-menu">
-                                                        <li><a class="dropdown-item" href="#" onclick="renameFolder({{ $folder->id }}, '{{ $folder->name }}')">
-                                                            <i class="ti ti-edit me-2"></i>Rename
+                                                        <li><a class="dropdown-item" href="#" onclick="editFolder({{ $folder->id }}, '{{ $folder->name }}', '{{ $folder->description ?? '' }}')">
+                                                            <i class="ti ti-edit me-2"></i>Edit
                                                         </a></li>
                                                         <li><a class="dropdown-item" href="#" onclick="managePermissions('folder', {{ $folder->id }}, '{{ $folder->name }}')">
                                                             <i class="ti ti-lock me-2"></i>Permissions
                                                         </a></li>
                                                         <li><a class="dropdown-item" href="#" onclick="shareResource('folder', {{ $folder->id }}, '{{ $folder->name }}')">
                                                             <i class="ti ti-share me-2"></i>Share
+                                                        </a></li>
+                                                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#commentsModal" data-resource-type="folder" data-resource-id="{{ $folder->id }}" data-resource-name="{{ $folder->name }}">
+                                                            <i class="ti ti-message-circle me-2"></i>Comments
                                                         </a></li>
                                                         <li><hr class="dropdown-divider"></li>
                                                         <li><a class="dropdown-item text-danger" href="#" onclick="deleteFolder({{ $folder->id }})">
@@ -189,6 +200,9 @@
                                                 <a href="{{ route('files.index', ['folder' => $folder->id]) }}" class="text-decoration-none">
                                                     <i class="ti ti-folder text-warning display-1 mb-3"></i>
                                                     <h6 class="card-title text-truncate">{{ $folder->name }}</h6>
+                                                    @if($folder->description)
+                                                        <p class="text-muted small mb-1" style="font-size: 0.75rem; line-height: 1.2; max-height: 2.4rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">{{ $folder->description }}</p>
+                                                    @endif
                                                     <small class="text-muted">{{ $folder->activeFiles->count() + $folder->activeChildren->count() }} items</small>
                                                 </a>
                                             </div>
@@ -206,10 +220,10 @@
                             </h6>
                             <div class="row">
                                 @foreach($files as $file)
-                                    <div class="col-xxl-2 col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3">
+                                    <div class="col-xxl-2 col-xl-3 col-lg-4 col-md-6 col-sm-6 col-6 mb-3">
                                         <div class="card file-card h-100" data-file-id="{{ $file->id }}">
-                                            <div class="card-body text-center p-3">
-                                                <div class="dropdown position-absolute top-0 end-0 mt-2 me-2">
+                                            <div class="card-body text-center p-2 p-sm-3">
+                                                <div class="dropdown position-absolute top-0 end-0 mt-1 me-1 mt-sm-2 me-sm-2">
                                                     <button class="btn btn-sm btn-icon dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                                         <i class="ti ti-dots-vertical"></i>
                                                     </button>
@@ -228,8 +242,8 @@
                                                         <li><a class="dropdown-item" href="#" onclick="showTagModal({{ $file->id }})">
                                                             <i class="ti ti-tag me-2"></i>Add Tag
                                                         </a></li>
-                                                        <li><a class="dropdown-item" href="#" onclick="renameFile({{ $file->id }}, '{{ $file->name }}')">
-                                                            <i class="ti ti-edit me-2"></i>Rename
+                                                        <li><a class="dropdown-item" href="#" onclick="editFile({{ $file->id }}, '{{ $file->name }}', '{{ $file->description ?? '' }}')">
+                                                            <i class="ti ti-edit me-2"></i>Edit
                                                         </a></li>
                                                         <li><a class="dropdown-item" href="#" onclick="moveFile({{ $file->id }})">
                                                             <i class="ti ti-folder-symlink me-2"></i>Move
@@ -239,6 +253,9 @@
                                                         </a></li>
                                                         <li><a class="dropdown-item" href="#" onclick="shareResource('file', {{ $file->id }}, '{{ $file->name }}')">
                                                             <i class="ti ti-share me-2"></i>Share
+                                                        </a></li>
+                                                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#commentsModal" data-resource-type="file" data-resource-id="{{ $file->id }}" data-resource-name="{{ $file->name }}">
+                                                            <i class="ti ti-message-circle me-2"></i>Comments
                                                         </a></li>
                                                         <li><hr class="dropdown-divider"></li>
                                                         <li><a class="dropdown-item text-danger" href="#" onclick="deleteFile({{ $file->id }})">
@@ -254,6 +271,9 @@
                                                 @endif
                                                 
                                                 <h6 class="card-title text-truncate" title="{{ $file->name }}">{{ $file->name }}</h6>
+                                                @if($file->description)
+                                                    <p class="text-muted small mb-1" style="font-size: 0.75rem; line-height: 1.2; max-height: 2.4rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">{{ $file->description }}</p>
+                                                @endif
                                                 <small class="text-muted d-block">{{ $file->human_size }}</small>
                                                 <small class="text-muted">{{ $file->updated_at->diffForHumans() }}</small>
                                             </div>
@@ -263,6 +283,58 @@
                             </div>
                         @endif
                     @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comments Section -->
+    <div class="col-12 mt-4">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="ti ti-message-circle me-2"></i>
+                    Comments & Collaboration
+                </h3>
+            </div>
+            <div class="card-body">
+                <div id="commentsContainer">
+                    <div class="text-center text-muted py-4">
+                        <i class="ti ti-message-circle-off fs-1"></i>
+                        <p class="mt-2">No comments yet. Start a discussion!</p>
+                    </div>
+                </div>
+                
+                <!-- Add Comment Form -->
+                <div class="mt-4">
+                    <form id="commentForm" onsubmit="event.preventDefault(); addComment();">
+                        <input type="hidden" id="commentResourceType" name="resource_type">
+                        <input type="hidden" id="commentResourceId" name="resource_id">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <textarea class="form-control" id="commentContent" name="content" rows="3" placeholder="Add a comment..." maxlength="2000"></textarea>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="d-flex flex-column gap-2">
+                                    <select class="form-select" id="commentType" name="type">
+                                        <option value="comment">Comment</option>
+                                        <option value="annotation">Annotation</option>
+                                        <option value="suggestion">Suggestion</option>
+                                    </select>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="isPrivateComment" name="is_private">
+                                        <label class="form-check-label" for="isPrivateComment">
+                                            Private Comment
+                                        </label>
+                                    </div>
+                                    <button type="button" class="btn btn-primary" onclick="addComment()">
+                                        <i class="ti ti-send me-1"></i>
+                                        Add Comment
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -295,6 +367,119 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-primary">Create Folder</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Files Modal -->
+<div class="modal fade" id="uploadModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="ti ti-upload me-2"></i>
+                    Upload Files
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="uploadForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="uploadFiles" class="form-label">Select Files</label>
+                        <input type="file" class="form-control" id="uploadFiles" name="files[]" multiple required>
+                        <div class="form-text">You can select multiple files. Maximum file size: 50MB per file.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="uploadDescription" class="form-label">Description (Optional)</label>
+                        <textarea class="form-control" id="uploadDescription" name="description" rows="3" placeholder="Add a description for the uploaded files..."></textarea>
+                        <div class="form-text">This description will be applied to all uploaded files.</div>
+                    </div>
+                    <input type="hidden" name="folder_id" value="{{ $currentFolder->id ?? '' }}">
+                    
+                    <!-- File Preview -->
+                    <div id="filePreview" class="mt-3" style="display: none;">
+                        <h6 class="text-uppercase text-muted mb-2">Selected Files</h6>
+                        <div id="fileList" class="list-group"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="uploadSubmitBtn">
+                        <i class="ti ti-upload me-1"></i>
+                        Upload Files
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit File Modal -->
+<div class="modal fade" id="editFileModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="ti ti-edit me-2"></i>
+                    Edit File
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editFileForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editFileName" class="form-label">File Name</label>
+                        <input type="text" class="form-control" id="editFileName" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editFileDescription" class="form-label">Description (Optional)</label>
+                        <textarea class="form-control" id="editFileDescription" name="description" rows="3" placeholder="Add or update the file description..."></textarea>
+                    </div>
+                    <input type="hidden" id="editFileId" name="file_id">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="ti ti-check me-1"></i>
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Folder Modal -->
+<div class="modal fade" id="editFolderModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="ti ti-edit me-2"></i>
+                    Edit Folder
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editFolderForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editFolderName" class="form-label">Folder Name</label>
+                        <input type="text" class="form-control" id="editFolderName" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editFolderDescription" class="form-label">Description (Optional)</label>
+                        <textarea class="form-control" id="editFolderDescription" name="description" rows="3" placeholder="Add or update the folder description..."></textarea>
+                    </div>
+                    <input type="hidden" id="editFolderId" name="folder_id">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="ti ti-check me-1"></i>
+                        Save Changes
+                    </button>
                 </div>
             </form>
         </div>
@@ -737,6 +922,29 @@ document.addEventListener('DOMContentLoaded', function() {
         createFolder();
     });
 
+    // Upload form
+    document.getElementById('uploadForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        uploadFilesFromModal();
+    });
+
+    // Edit file form
+    document.getElementById('editFileForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        updateFile();
+    });
+
+    // Edit folder form
+    document.getElementById('editFolderForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        updateFolder();
+    });
+
+    // File preview in upload modal
+    document.getElementById('uploadFiles').addEventListener('change', function(e) {
+        showFilePreview(e.target.files);
+    });
+
     // Search functionality
     document.getElementById('searchButton').addEventListener('click', function() {
         performSearch();
@@ -789,6 +997,84 @@ function uploadFiles(files) {
         hideLoading();
         showAlert('error', 'Upload failed: ' + error.message);
     });
+}
+
+function uploadFilesFromModal() {
+    const form = document.getElementById('uploadForm');
+    const formData = new FormData(form);
+    const submitBtn = document.getElementById('uploadSubmitBtn');
+    
+    // Disable submit button
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="ti ti-loader ti-spin me-1"></i>Uploading...';
+    
+    showLoading();
+    
+    fetch('{{ route("files.upload") }}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideLoading();
+        if (data.success) {
+            showAlert('success', data.message);
+            // Close modal and reload
+            const modal = bootstrap.Modal.getInstance(document.getElementById('uploadModal'));
+            modal.hide();
+            location.reload();
+        } else {
+            showAlert('error', data.error || 'Upload failed');
+            if (data.errors && data.errors.length > 0) {
+                data.errors.forEach(error => {
+                    showAlert('warning', error);
+                });
+            }
+        }
+    })
+    .catch(error => {
+        hideLoading();
+        showAlert('error', 'Upload failed: ' + error.message);
+    })
+    .finally(() => {
+        // Re-enable submit button
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="ti ti-upload me-1"></i>Upload Files';
+    });
+}
+
+function showFilePreview(files) {
+    const filePreview = document.getElementById('filePreview');
+    const fileList = document.getElementById('fileList');
+    
+    if (files.length === 0) {
+        filePreview.style.display = 'none';
+        return;
+    }
+    
+    fileList.innerHTML = '';
+    
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fileSize = (file.size / (1024 * 1024)).toFixed(2);
+        
+        const fileItem = document.createElement('div');
+        fileItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+        fileItem.innerHTML = `
+            <div>
+                <i class="ti ti-file me-2"></i>
+                <strong>${file.name}</strong>
+                <small class="text-muted d-block">${fileSize} MB</small>
+            </div>
+        `;
+        
+        fileList.appendChild(fileItem);
+    }
+    
+    filePreview.style.display = 'block';
 }
 
 function createFolder() {
@@ -1718,6 +2004,733 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+function editFile(fileId, currentName, currentDescription) {
+    document.getElementById('editFileId').value = fileId;
+    document.getElementById('editFileName').value = currentName;
+    document.getElementById('editFileDescription').value = currentDescription;
+    
+    const modal = new bootstrap.Modal(document.getElementById('editFileModal'));
+    modal.show();
+}
+
+function editFolder(folderId, currentName, currentDescription) {
+    document.getElementById('editFolderId').value = folderId;
+    document.getElementById('editFolderName').value = currentName;
+    document.getElementById('editFolderDescription').value = currentDescription;
+    
+    const modal = new bootstrap.Modal(document.getElementById('editFolderModal'));
+    modal.show();
+}
+
+function updateFile() {
+    const form = document.getElementById('editFileForm');
+    const formData = new FormData(form);
+    const fileId = formData.get('file_id');
+    
+    const requestData = {
+        name: formData.get('name'),
+        description: formData.get('description')
+    };
+    
+    fetch(`/files/${fileId}/update`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+            // Close modal and reload
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editFileModal'));
+            modal.hide();
+            location.reload();
+        } else {
+            showAlert('error', data.error || 'Failed to update file');
+        }
+    })
+    .catch(error => {
+        showAlert('error', 'Update failed: ' + error.message);
+    });
+}
+
+function updateFolder() {
+    const form = document.getElementById('editFolderForm');
+    const formData = new FormData(form);
+    const folderId = formData.get('folder_id');
+    
+    const requestData = {
+        name: formData.get('name'),
+        description: formData.get('description')
+    };
+    
+    fetch(`/files/folders/${folderId}/update`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+            // Close modal and reload
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editFolderModal'));
+            modal.hide();
+            location.reload();
+        } else {
+            showAlert('error', data.error || 'Failed to update folder');
+        }
+    })
+    .catch(error => {
+        showAlert('error', 'Update failed: ' + error.message);
+    });
+}
+
+// Comment functionality
+function showCommentsModal(resourceType, resourceId, resourceName) {
+    const resourceTypeEl = document.getElementById('commentResourceType');
+    const resourceIdEl = document.getElementById('commentResourceId');
+    
+    if (resourceTypeEl && resourceIdEl) {
+        resourceTypeEl.value = resourceType;
+        resourceIdEl.value = resourceId;
+    }
+    
+    // Update modal title
+    const modalTitle = document.querySelector('#commentsModal .modal-title');
+    modalTitle.innerHTML = `<i class="ti ti-message-circle me-2"></i>Comments: ${resourceName}`;
+    
+    // Load comments
+    loadComments(resourceType, resourceId);
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('commentsModal'));
+    modal.show();
+}
+
+function loadComments(resourceType, resourceId) {
+    const params = new URLSearchParams({
+        resource_type: resourceType,
+        resource_id: resourceId
+    });
+    
+    fetch(`/comments?${params}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayComments(data.comments);
+            } else {
+                showAlert('error', data.error || 'Failed to load comments');
+            }
+        })
+        .catch(error => {
+            console.error('Error loading comments:', error);
+            showAlert('error', 'Failed to load comments: ' + error.message);
+        });
+}
+
+function displayComments(comments) {
+    const container = document.getElementById('commentsContainer');
+    
+    if (!comments || comments.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-muted py-4">
+                <i class="ti ti-message-circle-off fs-1"></i>
+                <p class="mt-2">No comments yet. Start a discussion!</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    comments.forEach(comment => {
+        html += createCommentHTML(comment);
+    });
+    
+    container.innerHTML = html;
+}
+
+function createCommentHTML(comment) {
+    const isPrivate = comment.is_private ? '<span class="badge bg-warning ms-2">Private</span>' : '';
+    const isResolved = comment.status === 'resolved' ? '<span class="badge bg-success ms-2">Resolved</span>' : '';
+    const typeBadge = `<span class="badge bg-info">${comment.type_display || comment.type || 'Comment'}</span>`;
+    
+    // Handle missing author data defensively
+    const authorName = comment.author?.full_name || comment.author?.name || 'Unknown User';
+    const authorInitial = comment.author?.first_name?.charAt(0) || comment.author?.name?.charAt(0) || 'U';
+    
+    return `
+        <div class="comment-item mb-3 p-3 border rounded" data-comment-id="${comment.id}">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-sm me-2">
+                        <span class="avatar-initial rounded-circle bg-primary">${authorInitial}</span>
+                    </div>
+                    <div>
+                        <strong>${authorName}</strong>
+                        <small class="text-muted ms-2">${new Date(comment.created_at).toLocaleString()}</small>
+                    </div>
+                </div>
+                <div class="d-flex gap-1">
+                    ${typeBadge}
+                    ${isPrivate}
+                    ${isResolved}
+                </div>
+            </div>
+            <div class="comment-content">
+                <p class="mb-2">${comment.content}</p>
+            </div>
+            <div class="comment-actions d-flex gap-2">
+                <button class="btn btn-sm btn-outline-primary" onclick="replyToComment(${comment.id})">
+                    <i class="ti ti-reply me-1"></i>Reply
+                </button>
+                ${comment.status === 'active' ? `
+                    <button class="btn btn-sm btn-outline-success" onclick="resolveComment(${comment.id})">
+                        <i class="ti ti-check me-1"></i>Resolve
+                    </button>
+                ` : `
+                    <button class="btn btn-sm btn-outline-warning" onclick="reopenComment(${comment.id})">
+                        <i class="ti ti-refresh me-1"></i>Reopen
+                    </button>
+                `}
+                ${comment.author_id === {{ auth()->id() }} || {{ auth()->user()->is_admin ? 'true' : 'false' }} ? `
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteComment(${comment.id})">
+                        <i class="ti ti-trash me-1"></i>Delete
+                    </button>
+                ` : ''}
+            </div>
+            ${comment.replies && comment.replies.length > 0 ? `
+                <div class="replies mt-3 ms-4">
+                    ${comment.replies.map(reply => createCommentHTML(reply)).join('')}
+                </div>
+            ` : ''}
+        </div>
+    `;
+}
+
+// Form submission is now handled directly in the form onsubmit attribute
+
+function addComment() {
+    // Get form values directly from elements
+    const resourceTypeEl = document.getElementById('commentResourceType');
+    const resourceIdEl = document.getElementById('commentResourceId');
+    const contentEl = document.getElementById('commentContent');
+    const typeEl = document.getElementById('commentType');
+    const isPrivateEl = document.getElementById('isPrivateComment');
+    
+    const data = {
+        resource_type: resourceTypeEl ? resourceTypeEl.value : '',
+        resource_id: resourceIdEl ? parseInt(resourceIdEl.value) : 0,
+        content: contentEl ? contentEl.value : '',
+        type: typeEl ? typeEl.value : 'comment',
+        is_private: isPrivateEl ? isPrivateEl.checked : false
+    };
+    
+    if (!data.content.trim()) {
+        showAlert('error', 'Please enter a comment');
+        return;
+    }
+    
+    if (!data.resource_type || !data.resource_id) {
+        showAlert('error', 'Missing resource information. Please try refreshing the page.');
+        return;
+    }
+    
+    // Get CSRF token
+    const csrfToken = document.querySelector('meta[name="csrf-token"]');
+    if (!csrfToken) {
+        showAlert('error', 'CSRF token not found. Please refresh the page.');
+        return;
+    }
+    
+    fetch('/comments', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken.getAttribute('content')
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+            // Reload comments
+            loadComments(document.getElementById('commentResourceType').value, document.getElementById('commentResourceId').value);
+            // Clear form
+            document.getElementById('commentContent').value = '';
+            document.getElementById('isPrivateComment').checked = false;
+        } else {
+            showAlert('error', data.error || 'Failed to add comment');
+        }
+    })
+    .catch(error => {
+        console.error('Error adding comment:', error);
+        showAlert('error', 'Failed to add comment: ' + error.message);
+    });
+}
+
+function resolveComment(commentId) {
+    const notes = prompt('Add resolution notes (optional):');
+    
+    fetch(`/comments/${commentId}/resolve`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({ resolution_notes: notes })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+            loadComments(document.getElementById('commentResourceType').value, document.getElementById('commentResourceId').value);
+        } else {
+            showAlert('error', data.error || 'Failed to resolve comment');
+        }
+    })
+    .catch(error => {
+        showAlert('error', 'Failed to resolve comment: ' + error.message);
+    });
+}
+
+function reopenComment(commentId) {
+    fetch(`/comments/${commentId}/reopen`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+            loadComments(document.getElementById('commentResourceType').value, document.getElementById('commentResourceId').value);
+        } else {
+            showAlert('error', data.error || 'Failed to reopen comment');
+        }
+    })
+    .catch(error => {
+        showAlert('error', 'Failed to reopen comment: ' + error.message);
+    });
+}
+
+function deleteComment(commentId) {
+    if (!confirm('Are you sure you want to delete this comment?')) {
+        return;
+    }
+    
+    fetch(`/comments/${commentId}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+            loadComments(document.getElementById('commentResourceType').value, document.getElementById('commentResourceId').value);
+        } else {
+            showAlert('error', data.error || 'Failed to delete comment');
+        }
+    })
+    .catch(error => {
+        showAlert('error', 'Failed to delete comment: ' + error.message);
+    });
+}
+
+function replyToComment(commentId) {
+    // For now, we'll just focus on the comment form
+    // In a full implementation, you'd add a reply form or modify the main form
+    document.getElementById('commentContent').focus();
+    showAlert('info', 'Reply functionality will be implemented in the next version');
+}
+
+function testComment() {
+    console.log('Test function called');
+    
+    // Check form elements
+    const resourceType = document.getElementById('commentResourceType');
+    const resourceId = document.getElementById('commentResourceId');
+    const content = document.getElementById('commentContent');
+    
+    console.log('Resource Type Element:', resourceType);
+    console.log('Resource ID Element:', resourceId);
+    console.log('Content Element:', content);
+    
+    console.log('Resource Type Value:', resourceType ? resourceType.value : 'NOT FOUND');
+    console.log('Resource ID Value:', resourceId ? resourceId.value : 'NOT FOUND');
+    console.log('Content Value:', content ? content.value : 'NOT FOUND');
+    
+    // Check if elements exist in DOM
+    console.log('All form elements in modal:');
+    const modal = document.getElementById('commentsModal');
+    if (modal) {
+        const allInputs = modal.querySelectorAll('input, textarea, select');
+        allInputs.forEach((input, index) => {
+            console.log(`Input ${index}:`, input.id, input.name, input.value);
+        });
+    } else {
+        console.log('Modal not found!');
+    }
+    
+    // Test the addComment function
+    addComment();
+}
+
+// Ensure modal is properly initialized when opened
+document.addEventListener('DOMContentLoaded', function() {
+    const commentsModal = document.getElementById('commentsModal');
+    if (commentsModal) {
+        commentsModal.addEventListener('show.bs.modal', function(event) {
+            // Check if we have the resource info from the button that was clicked
+            const button = event.relatedTarget;
+            if (button && button.getAttribute('data-resource-type') && button.getAttribute('data-resource-id')) {
+                const resourceType = button.getAttribute('data-resource-type');
+                const resourceId = button.getAttribute('data-resource-id');
+                const resourceName = button.getAttribute('data-resource-name');
+                
+                const resourceTypeEl = document.getElementById('commentResourceType');
+                const resourceIdEl = document.getElementById('commentResourceId');
+                
+                if (resourceTypeEl && resourceIdEl) {
+                    resourceTypeEl.value = resourceType;
+                    resourceIdEl.value = resourceId;
+                    
+                    // Update modal title
+                    const modalTitle = document.querySelector('#commentsModal .modal-title');
+                    modalTitle.innerHTML = `<i class="ti ti-message-circle me-2"></i>Comments: ${resourceName}`;
+                    
+                    // Load comments
+                    loadComments(resourceType, resourceId);
+                }
+            }
+        });
+    }
+});
+
+// PWA Service Worker Registration
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+                console.log('SW registered: ', registration);
+                
+                // Check for updates
+                registration.addEventListener('updatefound', () => {
+                    const newWorker = registration.installing;
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            // New version available
+                            showAlert('info', 'New version available! Refresh to update.');
+                        }
+                    });
+                });
+            })
+            .catch((registrationError) => {
+                console.log('SW registration failed: ', registrationError);
+            });
+    });
+}
+
+// PWA Install Prompt
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+    console.log('PWA install prompt triggered');
+    e.preventDefault();
+    deferredPrompt = e;
+    
+    // Show custom install button
+    showPWAInstallPrompt();
+});
+
+function showPWAInstallPrompt() {
+    // Create install prompt
+    const installPrompt = document.createElement('div');
+    installPrompt.id = 'pwa-install-prompt';
+    installPrompt.className = 'position-fixed bottom-0 start-0 m-3 p-3 bg-primary text-white rounded shadow-lg';
+    installPrompt.style.zIndex = '999999';
+    installPrompt.innerHTML = `
+        <div class="d-flex align-items-center">
+            <i class="ti ti-download me-2"></i>
+            <div class="me-3">
+                <div class="fw-semibold">Install GoalDocs</div>
+                <small>Add to your home screen for quick access</small>
+            </div>
+            <button class="btn btn-sm btn-light me-2" onclick="installPWA()">Install</button>
+            <button class="btn btn-sm btn-outline-light" onclick="dismissPWAPrompt()">×</button>
+        </div>
+    `;
+    
+    document.body.appendChild(installPrompt);
+    
+    // Auto-hide after 10 seconds
+    setTimeout(() => {
+        dismissPWAPrompt();
+    }, 10000);
+}
+
+function installPWA() {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+                console.log('User accepted the install prompt');
+                showAlert('success', 'GoalDocs installed successfully!');
+            } else {
+                console.log('User dismissed the install prompt');
+            }
+            deferredPrompt = null;
+            dismissPWAPrompt();
+        });
+    }
+}
+
+function dismissPWAPrompt() {
+    const prompt = document.getElementById('pwa-install-prompt');
+    if (prompt) {
+        prompt.remove();
+    }
+}
+
+// Handle PWA display mode
+if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+    console.log('Running as PWA');
+    document.body.classList.add('pwa-mode');
+    
+    // Hide browser-specific elements when running as PWA
+    const browserElements = document.querySelectorAll('.browser-only');
+    browserElements.forEach(el => el.style.display = 'none');
+}
+
+// Mobile-specific enhancements
+if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+    document.body.classList.add('mobile-device');
+    
+    // Prevent zoom on input focus for iOS
+    const inputs = document.querySelectorAll('input, textarea, select');
+    inputs.forEach(input => {
+        if (input.style.fontSize < '16px') {
+            input.style.fontSize = '16px';
+        }
+    });
+    
+    // Add touch-friendly classes
+    document.body.classList.add('touch-device');
+    
+    // Touch gesture support for file cards
+    initTouchGestures();
+}
+
+// Touch gesture initialization
+function initTouchGestures() {
+    let startX, startY, isSelecting = false;
+    let selectedCards = new Set();
+    
+    // Add touch event listeners to file/folder cards
+    document.addEventListener('touchstart', handleTouchStart, { passive: false });
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd, { passive: false });
+    
+    // Long press for selection
+    let longPressTimer;
+    let longPressTriggered = false;
+    
+    function handleTouchStart(e) {
+        const card = e.target.closest('.file-card, .folder-card');
+        if (!card) return;
+        
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        longPressTriggered = false;
+        
+        // Start long press timer
+        longPressTimer = setTimeout(() => {
+            if (!longPressTriggered) {
+                longPressTriggered = true;
+                toggleCardSelection(card);
+                navigator.vibrate && navigator.vibrate(50); // Haptic feedback
+            }
+        }, 500);
+    }
+    
+    function handleTouchMove(e) {
+        const deltaX = Math.abs(e.touches[0].clientX - startX);
+        const deltaY = Math.abs(e.touches[0].clientY - startY);
+        
+        // Cancel long press if moved too much
+        if (deltaX > 10 || deltaY > 10) {
+            clearTimeout(longPressTimer);
+        }
+    }
+    
+    function handleTouchEnd(e) {
+        clearTimeout(longPressTimer);
+        
+        if (!longPressTriggered) {
+            // Regular tap - clear selection if no cards selected
+            if (selectedCards.size === 0) {
+                clearCardSelection();
+            }
+        }
+    }
+    
+    function toggleCardSelection(card) {
+        const cardId = card.dataset.fileId || card.dataset.folderId;
+        
+        if (selectedCards.has(cardId)) {
+            selectedCards.delete(cardId);
+            card.classList.remove('selected');
+        } else {
+            selectedCards.add(cardId);
+            card.classList.add('selected');
+        }
+        
+        updateSelectionToolbar();
+    }
+    
+    function clearCardSelection() {
+        selectedCards.clear();
+        document.querySelectorAll('.file-card.selected, .folder-card.selected')
+            .forEach(card => card.classList.remove('selected'));
+        updateSelectionToolbar();
+    }
+    
+    function updateSelectionToolbar() {
+        let toolbar = document.getElementById('selection-toolbar');
+        
+        if (selectedCards.size > 0) {
+            if (!toolbar) {
+                toolbar = createSelectionToolbar();
+                document.body.appendChild(toolbar);
+            }
+            toolbar.querySelector('.selection-count').textContent = selectedCards.size;
+            toolbar.style.display = 'flex';
+        } else if (toolbar) {
+            toolbar.style.display = 'none';
+        }
+    }
+    
+    function createSelectionToolbar() {
+        const toolbar = document.createElement('div');
+        toolbar.id = 'selection-toolbar';
+        toolbar.className = 'position-fixed bottom-0 start-0 end-0 bg-primary text-white p-3 d-flex align-items-center justify-content-between';
+        toolbar.style.zIndex = '9999';
+        toolbar.innerHTML = `
+            <div class="d-flex align-items-center">
+                <span class="selection-count me-2">0</span>
+                <span>items selected</span>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-light" onclick="shareSelected()">
+                    <i class="ti ti-share"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-light" onclick="moveSelected()">
+                    <i class="ti ti-folder-symlink"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-light" onclick="deleteSelected()">
+                    <i class="ti ti-trash"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-light" onclick="clearCardSelection()">
+                    <i class="ti ti-x"></i>
+                </button>
+            </div>
+        `;
+        return toolbar;
+    }
+    
+    // Expose functions globally
+    window.clearCardSelection = clearCardSelection;
+    window.shareSelected = function() {
+        showAlert('info', `Sharing ${selectedCards.size} items...`);
+        // Implementation for bulk sharing
+    };
+    
+    window.moveSelected = function() {
+        showAlert('info', `Moving ${selectedCards.size} items...`);
+        // Implementation for bulk moving
+    };
+    
+    window.deleteSelected = function() {
+        if (confirm(`Delete ${selectedCards.size} selected items?`)) {
+            showAlert('info', `Deleting ${selectedCards.size} items...`);
+            // Implementation for bulk deletion
+        }
+    };
+}
+
+// Swipe to refresh functionality
+let isRefreshing = false;
+let startY = 0;
+let currentY = 0;
+let pullDistance = 0;
+
+document.addEventListener('touchstart', (e) => {
+    if (window.scrollY === 0) {
+        startY = e.touches[0].clientY;
+    }
+}, { passive: true });
+
+document.addEventListener('touchmove', (e) => {
+    if (window.scrollY === 0 && !isRefreshing) {
+        currentY = e.touches[0].clientY;
+        pullDistance = currentY - startY;
+        
+        if (pullDistance > 100) {
+            showPullToRefreshIndicator();
+        }
+    }
+}, { passive: true });
+
+document.addEventListener('touchend', () => {
+    if (pullDistance > 150 && !isRefreshing) {
+        triggerRefresh();
+    }
+    hidePullToRefreshIndicator();
+    pullDistance = 0;
+}, { passive: true });
+
+function showPullToRefreshIndicator() {
+    let indicator = document.getElementById('pull-refresh-indicator');
+    if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.id = 'pull-refresh-indicator';
+        indicator.className = 'position-fixed top-0 start-0 end-0 text-center p-2 bg-primary text-white';
+        indicator.style.transform = 'translateY(-100%)';
+        indicator.style.transition = 'transform 0.3s ease';
+        indicator.innerHTML = '<i class="ti ti-refresh me-2"></i>Pull to refresh';
+        document.body.appendChild(indicator);
+    }
+    indicator.style.transform = 'translateY(0)';
+}
+
+function hidePullToRefreshIndicator() {
+    const indicator = document.getElementById('pull-refresh-indicator');
+    if (indicator) {
+        indicator.style.transform = 'translateY(-100%)';
+        setTimeout(() => indicator.remove(), 300);
+    }
+}
+
+function triggerRefresh() {
+    isRefreshing = true;
+    showAlert('info', 'Refreshing...');
+    
+    setTimeout(() => {
+        location.reload();
+    }, 1000);
+}
 </script>
 
 <!-- Core JS -->
@@ -1741,6 +2754,20 @@ document.addEventListener('DOMContentLoaded', function() {
     transition: all 0.2s ease;
 }
 
+/* Ensure cards don't interfere with dropdowns */
+.card {
+    position: relative;
+    z-index: 1;
+}
+
+.card .dropdown {
+    z-index: 999999;
+}
+
+.card .dropdown-menu {
+    z-index: 999999 !important;
+}
+
 .border-dashed {
     border-style: dashed !important;
     border-width: 2px !important;
@@ -1761,13 +2788,18 @@ document.addEventListener('DOMContentLoaded', function() {
 /* Dropdown fixes */
 .dropdown {
     position: relative;
+    z-index: 999999; /* Ensure dropdown container has high z-index */
+}
+
+.dropdown-toggle {
+    z-index: 999999;
 }
 
 .dropdown-menu {
     position: absolute;
     top: 100%;
     right: 0;
-    z-index: 99999;
+    z-index: 999999 !important; /* Increased z-index with !important */
     display: none !important;
     min-width: 160px;
     padding: 8px 0;
@@ -1787,6 +2819,7 @@ document.addEventListener('DOMContentLoaded', function() {
 .dropdown-menu.show {
     display: block !important;
     animation: dropdownSlide 0.3s ease-out;
+    z-index: 999999 !important; /* Ensure shown dropdown has highest priority */
 }
 
 @keyframes dropdownSlide {
@@ -1825,6 +2858,221 @@ document.addEventListener('DOMContentLoaded', function() {
     overflow: hidden;
     border-top: 1px solid rgba(0, 0, 0, 0.15);
 }
+
+/* Ensure cards and comments don't interfere with dropdowns */
+.card {
+    position: relative;
+    z-index: 1;
+}
+
+.card:hover {
+    z-index: 2;
+}
+
+#commentsContainer {
+    z-index: 10; /* Lower than dropdown */
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+    /* Better touch targets */
+    .btn-sm {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 8px 12px;
+    }
+    
+    .dropdown-toggle {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    /* Improved card spacing on mobile */
+    .folder-card, .file-card {
+        margin-bottom: 0.75rem;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    /* Touch selection states */
+    .folder-card.selected, .file-card.selected {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 3px rgba(115, 103, 240, 0.3);
+        background-color: rgba(115, 103, 240, 0.1);
+    }
+    
+    /* Touch feedback */
+    .folder-card:active, .file-card:active {
+        transform: scale(0.98);
+    }
+    
+    /* Better card titles on mobile */
+    .card-title {
+        font-size: 0.8rem;
+        line-height: 1.2;
+    }
+    
+    /* Optimized icon sizes */
+    .display-1 {
+        font-size: 2.5rem !important;
+    }
+    
+    /* Better modal sizing */
+    .modal-dialog {
+        margin: 1rem;
+        max-width: calc(100% - 2rem);
+    }
+    
+    .modal-lg {
+        max-width: calc(100% - 2rem);
+    }
+    
+    /* Mobile-friendly form controls */
+    .form-control, .form-select {
+        font-size: 16px; /* Prevents zoom on iOS */
+        min-height: 44px;
+    }
+    
+    /* Better comment form on mobile */
+    .row .col-md-8, .row .col-md-4 {
+        margin-bottom: 1rem;
+    }
+    
+    /* Improved navigation */
+    .layout-menu {
+        width: 280px;
+    }
+    
+    /* Better spacing for mobile cards */
+    .card-body {
+        padding: 1rem 0.5rem;
+    }
+    
+    /* Responsive text */
+    .text-muted.small {
+        font-size: 0.7rem;
+    }
+    
+    /* Touch-friendly dropdowns */
+    .dropdown-menu {
+        min-width: 200px;
+        font-size: 16px;
+    }
+    
+    .dropdown-item {
+        padding: 0.75rem 1rem;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+    }
+    
+    /* Mobile upload zone */
+    #dropzone {
+        min-height: 120px;
+        border: 2px dashed #ddd;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+    
+    #dropzone.dragover {
+        border-color: #7367f0;
+        background-color: rgba(115, 103, 240, 0.05);
+    }
+    
+    /* Selection toolbar styles */
+    #selection-toolbar {
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+        animation: slideUp 0.3s ease;
+    }
+    
+    @keyframes slideUp {
+        from {
+            transform: translateY(100%);
+        }
+        to {
+            transform: translateY(0);
+        }
+    }
+    
+    /* Pull to refresh indicator */
+    #pull-refresh-indicator {
+        z-index: 9999;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+}
+
+@media (max-width: 576px) {
+    /* Extra small screens */
+    .card-body {
+        padding: 0.75rem 0.25rem;
+    }
+    
+    .btn {
+        font-size: 0.875rem;
+    }
+    
+    /* Stack comment form vertically */
+    .row .col-md-8, .row .col-md-4 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+    
+    /* Smaller margins */
+    .mb-3 {
+        margin-bottom: 0.5rem !important;
+    }
+    
+    /* Better file icons on very small screens */
+    .display-1 {
+        font-size: 2rem !important;
+    }
+    
+    /* Responsive grid - 2 columns only on very small screens */
+    .col-6 {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+    
+    /* Mobile-specific button sizes */
+    .btn-sm {
+        padding: 6px 10px;
+        font-size: 0.8rem;
+    }
+    
+    /* Better navigation on small screens */
+    .layout-menu {
+        width: 260px;
+    }
+}
+
+/* PWA specific styles */
+.pwa-mode {
+    /* Hide elements that don't make sense in PWA mode */
+}
+
+.touch-device .card {
+    /* Enhanced touch feedback */
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .app-brand-logo svg {
+        width: 40px;
+        height: 28px;
+    }
+    
+    .ti {
+        /* Sharper icons on retina displays */
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+}
 </style>
 <!-- Tag Modal -->
 <div class="modal fade" id="tagModal" tabindex="-1">
@@ -1851,6 +3099,61 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary" onclick="addTag()">Add Tag</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Comments Modal -->
+<div class="modal fade" id="commentsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="ti ti-message-circle me-2"></i>
+                    Comments & Collaboration
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="commentsContainer">
+                    <div class="text-center text-muted py-4">
+                        <i class="ti ti-message-circle-off fs-1"></i>
+                        <p class="mt-2">No comments yet. Start a discussion!</p>
+                    </div>
+                </div>
+                
+                <!-- Add Comment Form -->
+                <div class="mt-4">
+                    <form id="commentForm" onsubmit="event.preventDefault(); addComment();">
+                        <input type="hidden" id="commentResourceType" name="resource_type">
+                        <input type="hidden" id="commentResourceId" name="resource_id">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <textarea class="form-control" id="commentContent" name="content" rows="3" placeholder="Add a comment..." maxlength="2000"></textarea>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="d-flex flex-column gap-2">
+                                    <select class="form-select" id="commentType" name="type">
+                                        <option value="comment">Comment</option>
+                                        <option value="annotation">Annotation</option>
+                                        <option value="suggestion">Suggestion</option>
+                                    </select>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="isPrivateComment" name="is_private">
+                                        <label class="form-check-label" for="isPrivateComment">
+                                            Private Comment
+                                        </label>
+                                    </div>
+                                    <button type="button" class="btn btn-primary" onclick="addComment()">
+                                        <i class="ti ti-send me-1"></i>
+                                        Add Comment
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>

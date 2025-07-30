@@ -1,0 +1,77 @@
+{
+  "name": "GoalDocs - Document Management System",
+  "short_name": "GoalDocs",
+  "description": "Professional document and file management system for organizations, families, and individuals",
+  "start_url": "/files",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#7367f0",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "categories": ["productivity", "business", "utilities"],
+  "icons": [
+    {
+      "src": "/assets/img/favicon/favicon.ico",
+      "sizes": "16x16 32x32 48x48",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/assets/img/favicon/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/img/favicon/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Upload Files",
+      "short_name": "Upload",
+      "description": "Quickly upload new files",
+      "url": "/files?action=upload",
+      "icons": [
+        {
+          "src": "/assets/img/favicon/favicon.ico",
+          "sizes": "32x32",
+          "type": "image/x-icon"
+        }
+      ]
+    },
+    {
+      "name": "Search Files",
+      "short_name": "Search",
+      "description": "Search through your documents",
+      "url": "/search",
+      "icons": [
+        {
+          "src": "/assets/img/favicon/favicon.ico",
+          "sizes": "32x32",
+          "type": "image/x-icon"
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/assets/img/screenshots/desktop-home.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "File manager dashboard on desktop"
+    },
+    {
+      "src": "/assets/img/screenshots/mobile-files.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "File browser on mobile"
+    }
+  ],
+  "prefer_related_applications": false
+} 

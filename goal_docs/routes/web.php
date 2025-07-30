@@ -99,9 +99,36 @@ Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class])->
         Route::get('/{file}/download', [\App\Http\Controllers\FileController::class, 'download'])->name('download');
         Route::get('/{file}/preview', [\App\Http\Controllers\FileController::class, 'preview'])->name('preview');
         Route::delete('/{file}', [\App\Http\Controllers\FileController::class, 'deleteFile'])->name('delete');
+        Route::put('/{file}/update', [\App\Http\Controllers\FileController::class, 'update'])->name('update');
         Route::delete('/folders/{folder}', [\App\Http\Controllers\FileController::class, 'deleteFolder'])->name('folders.delete');
-        Route::post('/{file}/permissions', [\App\Http\Controllers\FileController::class, 'assignPermissions'])->name('permissions.assign');
-        Route::delete('/{file}/permissions/{permission}', [\App\Http\Controllers\FileController::class, 'removePermission'])->name('permissions.remove');
+        Route::put('/folders/{folder}/update', [\App\Http\Controllers\FileController::class, 'updateFolder'])->name('folders.update');
+        Route::get('/permissions', [\App\Http\Controllers\FileController::class, 'getPermissions'])->name('permissions.get');
+        Route::post('/permissions/preset', [\App\Http\Controllers\FileController::class, 'applyPreset'])->name('permissions.preset');
+        Route::post('/permissions/assign', [\App\Http\Controllers\FileController::class, 'assignPermissions'])->name('permissions.assign');
+        Route::delete('/permissions/remove', [\App\Http\Controllers\FileController::class, 'removePermission'])->name('permissions.remove');
+    });
+
+    // Document Comments Routes
+    Route::prefix('comments')->name('comments.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\DocumentCommentController::class, 'index'])->name('index');
+        Route::post('/', [\App\Http\Controllers\DocumentCommentController::class, 'store'])->name('store');
+        Route::put('/{comment}', [\App\Http\Controllers\DocumentCommentController::class, 'update'])->name('update');
+        Route::post('/{comment}/resolve', [\App\Http\Controllers\DocumentCommentController::class, 'resolve'])->name('resolve');
+        Route::post('/{comment}/reopen', [\App\Http\Controllers\DocumentCommentController::class, 'reopen'])->name('reopen');
+        Route::delete('/{comment}', [\App\Http\Controllers\DocumentCommentController::class, 'destroy'])->name('destroy');
+        Route::get('/statistics', [\App\Http\Controllers\DocumentCommentController::class, 'statistics'])->name('statistics');
+    });
+
+    // Document Workflows Routes
+    Route::prefix('workflows')->name('workflows.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\DocumentWorkflowController::class, 'index'])->name('index');
+        Route::post('/', [\App\Http\Controllers\DocumentWorkflowController::class, 'store'])->name('store');
+        Route::post('/{workflow}/start', [\App\Http\Controllers\DocumentWorkflowController::class, 'start'])->name('start');
+        Route::post('/steps/{step}/complete', [\App\Http\Controllers\DocumentWorkflowController::class, 'completeStep'])->name('steps.complete');
+        Route::post('/assignments/{assignment}/delegate', [\App\Http\Controllers\DocumentWorkflowController::class, 'delegateAssignment'])->name('assignments.delegate');
+        Route::post('/{workflow}/cancel', [\App\Http\Controllers\DocumentWorkflowController::class, 'cancel'])->name('cancel');
+        Route::get('/statistics', [\App\Http\Controllers\DocumentWorkflowController::class, 'statistics'])->name('statistics');
+        Route::get('/my-assignments', [\App\Http\Controllers\DocumentWorkflowController::class, 'myAssignments'])->name('my-assignments');
     });
 
     // Search & Organization Routes

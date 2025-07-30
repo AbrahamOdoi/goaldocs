@@ -90,6 +90,11 @@ class User extends Authenticatable
         return '';
     }
 
+    public function getFullNameAttribute()
+    {
+        return $this->name;
+    }
+
     /**
      * Get file permissions assigned to this user
      */

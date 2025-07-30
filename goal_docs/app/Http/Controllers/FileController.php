@@ -123,6 +123,14 @@ class FileController extends Controller
 
         $user = Auth::user();
 
+        // Check if user has permission to create folders in the parent folder
+        if ($request->parent_folder_id) {
+            $parentFolder = Folder::find($request->parent_folder_id);
+            if ($parentFolder && !$this->permissionService->userHasPermission($user, $parentFolder, 'upload')) {
+                return response()->json(['error' => 'You do not have permission to create folders in this location'], 403);
+            }
+        }
+
         // Check if folder with same name exists in the same parent within the same organization
         if ($user->type === 'individual') {
             $exists = Folder::forUserType($user->type)
@@ -171,7 +179,7 @@ class FileController extends Controller
         // Log activity
         RecentActivity::log(
             $user->id,
-            $user->user_type,
+            $user->type,
             $user->type_name,
             'upload',
             null,
@@ -197,6 +205,7 @@ class FileController extends Controller
             'files' => 'required|array',
             'files.*' => 'file|max:' . ($this->maxFileSize / 1024), // Laravel expects KB
             'folder_id' => 'nullable|exists:folders,id',
+            'description' => 'nullable|string|max:1000',
         ]);
 
         if ($validator->fails()) {
@@ -206,6 +215,14 @@ class FileController extends Controller
         $user = Auth::user();
         $uploadedFiles = [];
         $errors = [];
+
+        // Check if user has permission to upload to the target folder
+        if ($request->folder_id) {
+            $targetFolder = Folder::find($request->folder_id);
+            if ($targetFolder && !$this->permissionService->userHasPermission($user, $targetFolder, 'upload')) {
+                return response()->json(['error' => 'You do not have permission to upload files to this folder'], 403);
+            }
+        }
 
         foreach ($request->file('files') as $uploadedFile) {
             try {
@@ -247,6 +264,7 @@ class FileController extends Controller
                 $file = File::create([
                     'name' => pathinfo($uploadedFile->getClientOriginalName(), PATHINFO_FILENAME),
                     'original_name' => $uploadedFile->getClientOriginalName(),
+                    'description' => $request->description,
                     'file_path' => $filePath,
                     'file_hash' => $fileHash,
                     'file_size' => $uploadedFile->getSize(),
@@ -292,7 +310,7 @@ class FileController extends Controller
                 // Log activity
                 RecentActivity::log(
                     $user->id,
-                    $user->user_type,
+                    $user->type,
                     $user->type_name,
                     'upload',
                     $file->id,
@@ -339,7 +357,7 @@ class FileController extends Controller
         // Log activity
         RecentActivity::log(
             $user->id,
-            $user->user_type,
+            $user->type,
             $user->type_name,
             'download',
             $file->id,
@@ -347,11 +365,137 @@ class FileController extends Controller
             ['file_name' => $file->original_name]
         );
 
-        $fileContent = Storage::disk('local')->get($file->file_path);
+        return response()->download(Storage::disk('local')->path($file->file_path), $file->original_name);
+    }
+
+    /**
+     * Update file details
+     */
+    public function update(Request $request, File $file): JsonResponse
+    {
+        $this->checkUserAccess();
         
-        return response($fileContent)
-            ->header('Content-Type', $file->mime_type)
-            ->header('Content-Disposition', 'attachment; filename="' . $file->original_name . '"');
+        $user = Auth::user();
+        
+        // Check if user has permission to edit this file
+        if (!$this->permissionService->userHasPermission($user, $file, 'edit')) {
+            abort(403, 'Access denied');
+        }
+        
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()->first()], 400);
+        }
+
+        // Check if file with same name exists in the same folder within the same organization
+        if ($user->type === 'individual') {
+            $exists = File::forUserType($user->type)
+                ->where('folder_id', $file->folder_id)
+                ->where('name', $request->name)
+                ->where('id', '!=', $file->id)
+                ->exists();
+        } else {
+            $exists = File::forOrganization($user->type, $user->type_name)
+                ->where('folder_id', $file->folder_id)
+                ->where('name', $request->name)
+                ->where('id', '!=', $file->id)
+                ->exists();
+        }
+
+        if ($exists) {
+            return response()->json(['error' => 'A file with this name already exists in this folder'], 400);
+        }
+
+        $file->update([
+            'name' => $request->name,
+            'description' => $request->description,
+        ]);
+
+        // Log activity
+        RecentActivity::log(
+            $user->id,
+            $user->type,
+            $user->type_name,
+            'edit',
+            $file->id,
+            null,
+            ['file_name' => $file->original_name, 'changes' => ['name' => $request->name, 'description' => $request->description]]
+        );
+
+        return response()->json([
+            'success' => true,
+            'file' => $file,
+            'message' => 'File updated successfully'
+        ]);
+    }
+
+    /**
+     * Update folder details
+     */
+    public function updateFolder(Request $request, Folder $folder): JsonResponse
+    {
+        $this->checkUserAccess();
+        
+        $user = Auth::user();
+        
+        // Check if user has permission to edit this folder
+        if (!$this->permissionService->userHasPermission($user, $folder, 'edit')) {
+            abort(403, 'Access denied');
+        }
+        
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()->first()], 400);
+        }
+
+        // Check if folder with same name exists in the same parent within the same organization
+        if ($user->type === 'individual') {
+            $exists = Folder::forUserType($user->type)
+                ->where('parent_folder_id', $folder->parent_folder_id)
+                ->where('name', $request->name)
+                ->where('id', '!=', $folder->id)
+                ->exists();
+        } else {
+            $exists = Folder::forOrganization($user->type, $user->type_name)
+                ->where('parent_folder_id', $folder->parent_folder_id)
+                ->where('name', $request->name)
+                ->where('id', '!=', $folder->id)
+                ->exists();
+        }
+
+        if ($exists) {
+            return response()->json(['error' => 'A folder with this name already exists in this location'], 400);
+        }
+
+        $folder->update([
+            'name' => $request->name,
+            'description' => $request->description,
+        ]);
+
+        // Log activity
+        RecentActivity::log(
+            $user->id,
+            $user->type,
+            $user->type_name,
+            'edit',
+            null,
+            $folder->id,
+            ['folder_name' => $folder->name, 'changes' => ['name' => $request->name, 'description' => $request->description]]
+        );
+
+        return response()->json([
+            'success' => true,
+            'folder' => $folder,
+            'message' => 'Folder updated successfully'
+        ]);
     }
 
     /**
@@ -378,7 +522,7 @@ class FileController extends Controller
         // Log activity
         RecentActivity::log(
             $user->id,
-            $user->user_type,
+            $user->type,
             $user->type_name,
             'view',
             $file->id,
@@ -422,7 +566,7 @@ class FileController extends Controller
             // Log activity before deletion
             RecentActivity::log(
                 $user->id,
-                $user->user_type,
+                $user->type,
                 $user->type_name,
                 'delete',
                 $file->id,
@@ -463,7 +607,7 @@ class FileController extends Controller
             // Log activity before deletion
             RecentActivity::log(
                 $user->id,
-                $user->user_type,
+                $user->type,
                 $user->type_name,
                 'delete',
                 null,
@@ -485,6 +629,13 @@ class FileController extends Controller
     {
         $this->checkUserAccess();
         
+        $user = Auth::user();
+        
+        // Check if user has permission to edit this file
+        if (!$this->permissionService->userHasPermission($user, $file, 'edit')) {
+            abort(403, 'Access denied');
+        }
+        
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
         ]);
@@ -495,6 +646,17 @@ class FileController extends Controller
 
         $file->update(['name' => $request->name]);
 
+        // Log activity
+        RecentActivity::log(
+            $user->id,
+            $user->type,
+            $user->type_name,
+            'edit',
+            $file->id,
+            null,
+            ['file_name' => $file->original_name, 'action' => 'rename', 'new_name' => $request->name]
+        );
+
         return response()->json(['success' => true, 'message' => 'File renamed successfully']);
     }
 
@@ -504,6 +666,13 @@ class FileController extends Controller
     public function renameFolder(Request $request, Folder $folder): JsonResponse
     {
         $this->checkUserAccess();
+        
+        $user = Auth::user();
+        
+        // Check if user has permission to edit this folder
+        if (!$this->permissionService->userHasPermission($user, $folder, 'edit')) {
+            abort(403, 'Access denied');
+        }
         
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
@@ -526,6 +695,17 @@ class FileController extends Controller
 
         $folder->update(['name' => $request->name]);
 
+        // Log activity
+        RecentActivity::log(
+            $user->id,
+            $user->type,
+            $user->type_name,
+            'edit',
+            null,
+            $folder->id,
+            ['folder_name' => $folder->name, 'action' => 'rename', 'new_name' => $request->name]
+        );
+
         return response()->json(['success' => true, 'message' => 'Folder renamed successfully']);
     }
 
@@ -536,6 +716,13 @@ class FileController extends Controller
     {
         $this->checkUserAccess();
         
+        $user = Auth::user();
+        
+        // Check if user has permission to edit this file
+        if (!$this->permissionService->userHasPermission($user, $file, 'edit')) {
+            abort(403, 'Access denied');
+        }
+        
         $validator = Validator::make($request->all(), [
             'folder_id' => 'nullable|exists:folders,id',
         ]);
@@ -544,7 +731,27 @@ class FileController extends Controller
             return response()->json(['error' => $validator->errors()->first()], 400);
         }
 
+        // If moving to a specific folder, check if user has upload permission to that folder
+        if ($request->folder_id) {
+            $targetFolder = Folder::find($request->folder_id);
+            if ($targetFolder && !$this->permissionService->userHasPermission($user, $targetFolder, 'upload')) {
+                return response()->json(['error' => 'You do not have permission to upload files to the target folder'], 403);
+            }
+        }
+
+        $oldFolderId = $file->folder_id;
         $file->update(['folder_id' => $request->folder_id]);
+
+        // Log activity
+        RecentActivity::log(
+            $user->id,
+            $user->type,
+            $user->type_name,
+            'edit',
+            $file->id,
+            null,
+            ['file_name' => $file->original_name, 'action' => 'move', 'from_folder' => $oldFolderId, 'to_folder' => $request->folder_id]
+        );
 
         return response()->json(['success' => true, 'message' => 'File moved successfully']);
     }

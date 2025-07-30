@@ -39,21 +39,34 @@ class SearchController extends Controller
         // Get recent activities
         $recentActivities = RecentActivity::getRecentForUser(
             $user->id, 
-            $user->user_type, 
+            $user->type, 
             $user->type_name, 
             10
         );
 
         // Get user's favorites
         $favorites = UserFavorite::forUser($user->id)
-            ->forOrganization($user->user_type, $user->type_name)
+            ->forOrganization($user->type, $user->type_name)
             ->with(['file', 'folder'])
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get();
 
         // Get popular tags
-        $popularTags = FileTag::getPopularTags($user->user_type, $user->type_name, 15);
+        $popularTags = FileTag::getPopularTags($user->type, $user->type_name, 15);
+
+        // Log search activity if there's a query or filters
+        if ($query || !empty(array_filter($filters))) {
+            RecentActivity::log(
+                $user->id,
+                $user->type,
+                $user->type_name,
+                'view',
+                null,
+                null,
+                ['search_query' => $query, 'filters' => $filters, 'results_count' => $results->count()]
+            );
+        }
 
         return view('search.index', compact('results', 'query', 'filters', 'recentActivities', 'favorites', 'popularTags'));
     }
@@ -66,7 +79,7 @@ class SearchController extends Controller
         $results = collect();
 
         // Search files
-        $files = File::forOrganization($user->user_type, $user->type_name)
+        $files = File::forOrganization($user->type, $user->type_name)
             ->active()
             ->with(['folder', 'tags', 'uploader']);
 
@@ -92,7 +105,7 @@ class SearchController extends Controller
         }));
 
         // Search folders
-        $folders = Folder::forOrganization($user->user_type, $user->type_name)
+        $folders = Folder::forOrganization($user->type, $user->type_name)
             ->active()
             ->with(['parent', 'creator']);
 
@@ -172,7 +185,7 @@ class SearchController extends Controller
         $query = $request->get('q', '');
 
         $suggestions = FileTag::getTagSuggestions(
-            $user->user_type, 
+            $user->type, 
             $user->type_name, 
             $query, 
             10
@@ -214,7 +227,7 @@ class SearchController extends Controller
             'file_id' => $file->id,
             'tag_name' => $request->tag_name,
             'color' => $request->color ?? '#667eea',
-            'user_type' => $user->user_type,
+            'user_type' => $user->type,
             'type_name' => $user->type_name,
             'created_by' => $user->id,
         ]);
@@ -222,7 +235,7 @@ class SearchController extends Controller
         // Log activity
         RecentActivity::log(
             $user->id,
-            $user->user_type,
+            $user->type,
             $user->type_name,
             'tag',
             $file->id,
@@ -262,7 +275,7 @@ class SearchController extends Controller
         // Log activity
         RecentActivity::log(
             $user->id,
-            $user->user_type,
+            $user->type,
             $user->type_name,
             'tag',
             $fileId,
@@ -315,7 +328,7 @@ class SearchController extends Controller
         // Toggle favorite
         $isFavorited = UserFavorite::toggleFavorite(
             $user->id,
-            $user->user_type,
+            $user->type,
             $user->type_name,
             $fileId,
             $folderId
@@ -324,7 +337,7 @@ class SearchController extends Controller
         // Log activity
         RecentActivity::log(
             $user->id,
-            $user->user_type,
+            $user->type,
             $user->type_name,
             'favorite',
             $fileId,
@@ -347,7 +360,7 @@ class SearchController extends Controller
         $user = Auth::user();
 
         $favorites = UserFavorite::forUser($user->id)
-            ->forOrganization($user->user_type, $user->type_name)
+            ->forOrganization($user->type, $user->type_name)
             ->with(['file', 'folder'])
             ->orderBy('created_at', 'desc')
             ->get();
@@ -364,7 +377,7 @@ class SearchController extends Controller
 
         $activities = RecentActivity::getRecentForUser(
             $user->id,
-            $user->user_type,
+            $user->type,
             $user->type_name,
             20
         );
@@ -379,7 +392,7 @@ class SearchController extends Controller
     {
         $user = Auth::user();
 
-        $tags = FileTag::getPopularTags($user->user_type, $user->type_name, 15);
+        $tags = FileTag::getPopularTags($user->type, $user->type_name, 15);
 
         return response()->json($tags);
     }

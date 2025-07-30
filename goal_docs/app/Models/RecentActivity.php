@@ -39,6 +39,13 @@ class RecentActivity extends Model
         'permission_change' => 'Changed Permissions',
         'favorite' => 'Favorited',
         'tag' => 'Tagged',
+        'comment' => 'Commented',
+        'workflow' => 'Workflow',
+        'workflow_step' => 'Workflow Step',
+        'workflow_assignment' => 'Workflow Assignment',
+        'resolve_comment' => 'Resolved Comment',
+        'reopen_comment' => 'Reopened Comment',
+        'delete_comment' => 'Deleted Comment',
     ];
 
     /**
