@@ -190,4 +190,27 @@ class Folder extends Model
         
         return $size;
     }
+
+    /**
+     * Compute a simple relevance score for folders used in search results
+     */
+    public function getSearchRelevanceScore(string $searchTerm): float
+    {
+        $score = 0;
+        $term = strtolower($searchTerm);
+
+        if (stripos($this->name ?? '', $term) !== false) {
+            $score += 10;
+        }
+
+        if (stripos($this->description ?? '', $term) !== false) {
+            $score += 5;
+        }
+
+        if (strtolower($this->name ?? '') === $term) {
+            $score += 5;
+        }
+
+        return $score;
+    }
 }

@@ -100,6 +100,54 @@ class User extends Authenticatable
      */
     public function filePermissions()
     {
-        return $this->morphMany(FilePermission::class, 'assignable');
+        return $this->hasMany(FilePermission::class);
+    }
+
+    /**
+     * Get files uploaded by this user
+     */
+    public function files()
+    {
+        return $this->hasMany(File::class, 'uploaded_by');
+    }
+
+    /**
+     * Get activities performed by this user
+     */
+    public function activities()
+    {
+        return $this->hasMany(RecentActivity::class);
+    }
+
+    /**
+     * Get comments made by this user
+     */
+    public function comments()
+    {
+        return $this->hasMany(Comment::class);
+    }
+
+    /**
+     * Get document locks created by this user
+     */
+    public function documentLocks()
+    {
+        return $this->hasMany(DocumentLock::class);
+    }
+
+    /**
+     * Get workflow instances initiated by this user
+     */
+    public function workflowInstances()
+    {
+        return $this->hasMany(WorkflowInstance::class, 'initiated_by');
+    }
+
+    /**
+     * Get security audits for this user
+     */
+    public function securityAudits()
+    {
+        return $this->hasMany(SecurityAudit::class);
     }
 }

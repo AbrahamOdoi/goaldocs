@@ -66,6 +66,36 @@
       </a>
     </li>
     <li class="menu-item">
+      <a href="{{ route('files.advanced-search') }}" class="menu-link">
+        <i class="menu-icon tf-icons ti ti-search-plus"></i>
+        <div data-i18n="Advanced Search">Advanced Search</div>
+      </a>
+    </li>
+    
+    <!-- Phase 7 Features - Testing -->
+    <li class="menu-header small text-uppercase">
+      <span class="menu-header-text" data-i18n="Advanced Features">Advanced Features</span>
+    </li>
+    <li class="menu-item">
+      <a href="{{ route('analytics.dashboard') }}" class="menu-link">
+        <i class="menu-icon tf-icons ti ti-chart-bar"></i>
+        <div data-i18n="Analytics">Analytics Dashboard</div>
+      </a>
+    </li>
+    <li class="menu-item">
+      <a href="{{ route('security.dashboard') }}" class="menu-link">
+        <i class="menu-icon tf-icons ti ti-shield-lock"></i>
+        <div data-i18n="Security">Security Center</div>
+      </a>
+    </li>
+    <li class="menu-item">
+      <a href="{{ route('workflows.dashboard') }}" class="menu-link">
+        <i class="menu-icon tf-icons ti ti-git-branch"></i>
+        <div data-i18n="Workflows">Workflows</div>
+      </a>
+    </li>
+    
+    <li class="menu-item">
       <a href="javascript:void(0);" class="menu-link" onclick="showMyShares()">
         <i class="menu-icon tf-icons ti ti-share"></i>
         <div data-i18n="Shares">Shares</div>
@@ -176,6 +206,24 @@
               $label = $typeLabels[$type] ?? 'Structure';
             @endphp
             <div data-i18n="{{ $label }}">{{ $label }}</div>
+          </a>
+        </li>
+        <li class="menu-item">
+          <a href="{{ route('analytics.dashboard') }}" class="menu-link">
+            <i class="menu-icon tf-icons ti ti-chart-bar"></i>
+            <div data-i18n="Analytics">Analytics</div>
+          </a>
+        </li>
+        <li class="menu-item">
+          <a href="{{ route('security.dashboard') }}" class="menu-link">
+            <i class="menu-icon tf-icons ti ti-shield-lock"></i>
+            <div data-i18n="Security">Security</div>
+          </a>
+        </li>
+        <li class="menu-item">
+          <a href="{{ route('workflows.dashboard') }}" class="menu-link">
+            <i class="menu-icon tf-icons ti ti-git-branch"></i>
+            <div data-i18n="Workflows">Workflows</div>
           </a>
         </li>
         @if(auth()->user()->type !== 'individual')

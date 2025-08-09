@@ -254,6 +254,23 @@
                                                         <li><a class="dropdown-item" href="#" onclick="shareResource('file', {{ $file->id }}, '{{ $file->name }}')">
                                                             <i class="ti ti-share me-2"></i>Share
                                                         </a></li>
+                                                        @if($file->supportsPreview())
+                                                        <li><a class="dropdown-item" href="{{ route('files.preview', $file) }}">
+                                                            <i class="ti ti-eye me-2"></i>Preview
+                                                        </a></li>
+                                                        @endif
+                                                        <li><a class="dropdown-item" href="{{ route('files.version.history', $file) }}">
+                                                            <i class="ti ti-history me-2"></i>Version History
+                                                        </a></li>
+                                                        <li><a class="dropdown-item" href="{{ route('files.collaboration.show', $file) }}">
+                                                            <i class="ti ti-users me-2"></i>Collaboration
+                                                        </a></li>
+                                                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#workflowModal" data-file-id="{{ $file->id }}" data-file-name="{{ $file->name }}">
+                                                            <i class="ti ti-git-branch me-2"></i>Start Workflow
+                                                        </a></li>
+                                                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#securityModal" data-file-id="{{ $file->id }}" data-file-name="{{ $file->name }}">
+                                                            <i class="ti ti-shield-lock me-2"></i>Security
+                                                        </a></li>
                                                         <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#commentsModal" data-resource-type="file" data-resource-id="{{ $file->id }}" data-resource-name="{{ $file->name }}">
                                                             <i class="ti ti-message-circle me-2"></i>Comments
                                                         </a></li>

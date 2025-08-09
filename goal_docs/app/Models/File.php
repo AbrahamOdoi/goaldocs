@@ -15,24 +15,26 @@ class File extends Model
     protected $fillable = [
         'name',
         'original_name',
-        'description',
         'file_path',
-        'file_hash',
-        'file_size',
         'mime_type',
+        'file_size',
         'extension',
+        'description',
         'folder_id',
-        'user_type',
-        'type_name',
         'uploaded_by',
+        'user_type',
+        'user_type_name',
         'metadata',
-        'is_active',
+        'extracted_text',
+        'search_metadata',
+        'indexed_at',
         'last_accessed_at',
     ];
 
     protected $casts = [
         'metadata' => 'array',
-        'is_active' => 'boolean',
+        'search_metadata' => 'array',
+        'indexed_at' => 'datetime',
         'last_accessed_at' => 'datetime',
     ];
 
@@ -53,15 +55,15 @@ class File extends Model
     }
 
     /**
-     * Get all versions of this file
+     * Get the file versions
      */
     public function versions(): HasMany
     {
-        return $this->hasMany(FileVersion::class)->orderBy('version_number', 'desc');
+        return $this->hasMany(FileVersion::class);
     }
 
     /**
-     * Get all permissions for this file
+     * Get the file permissions
      */
     public function permissions(): HasMany
     {
@@ -69,7 +71,7 @@ class File extends Model
     }
 
     /**
-     * Get all tags for this file
+     * Get the file tags
      */
     public function tags(): HasMany
     {
@@ -77,7 +79,7 @@ class File extends Model
     }
 
     /**
-     * Get all favorites for this file
+     * Get the file favorites
      */
     public function favorites(): HasMany
     {
@@ -85,7 +87,7 @@ class File extends Model
     }
 
     /**
-     * Get all activities for this file
+     * Get the file activities
      */
     public function activities(): HasMany
     {
@@ -93,16 +95,47 @@ class File extends Model
     }
 
     /**
-     * Get the current version of this file
+     * Get the current version of the file
      */
     public function currentVersion(): BelongsTo
     {
-        return $this->belongsTo(FileVersion::class, 'id', 'file_id')
-            ->where('is_current', true);
+        return $this->belongsTo(FileVersion::class, 'current_version_id');
     }
 
     /**
-     * Scope for filtering by user type
+     * Get the file comments
+     */
+    public function comments(): HasMany
+    {
+        return $this->hasMany(Comment::class, 'commentable_id')->where('commentable_type', File::class);
+    }
+
+    /**
+     * Get the document locks
+     */
+    public function documentLocks(): HasMany
+    {
+        return $this->hasMany(DocumentLock::class);
+    }
+
+    /**
+     * Get the workflow instances
+     */
+    public function workflowInstances(): HasMany
+    {
+        return $this->hasMany(WorkflowInstance::class);
+    }
+
+    /**
+     * Get the encryption keys
+     */
+    public function encryptionKeys(): HasMany
+    {
+        return $this->hasMany(EncryptionKey::class);
+    }
+
+    /**
+     * Scope for files by user type
      */
     public function scopeForUserType($query, $userType)
     {
@@ -110,11 +143,12 @@ class File extends Model
     }
 
     /**
-     * Scope for filtering by specific organization
+     * Scope for files by organization
      */
     public function scopeForOrganization($query, $userType, $typeName)
     {
-        return $query->where('user_type', $userType)->where('type_name', $typeName);
+        return $query->where('user_type', $userType)
+                    ->where('user_type_name', $typeName);
     }
 
     /**
@@ -122,11 +156,11 @@ class File extends Model
      */
     public function scopeActive($query)
     {
-        return $query->where('is_active', true);
+        return $query->whereNull('deleted_at');
     }
 
     /**
-     * Scope for files in root (no folder)
+     * Scope for files in root folder
      */
     public function scopeInRoot($query)
     {
@@ -138,7 +172,7 @@ class File extends Model
      */
     public function getHumanSizeAttribute(): string
     {
-        $bytes = $this->file_size;
+        $bytes = $this->size;
         $units = ['B', 'KB', 'MB', 'GB', 'TB'];
         
         for ($i = 0; $bytes > 1024 && $i < count($units) - 1; $i++) {
@@ -153,7 +187,7 @@ class File extends Model
      */
     public function getIsImageAttribute(): bool
     {
-        return strpos($this->mime_type, 'image/') === 0;
+        return str_starts_with($this->mime_type, 'image/');
     }
 
     /**
@@ -163,15 +197,14 @@ class File extends Model
     {
         $documentTypes = [
             'application/pdf',
+            'text/plain',
             'application/msword',
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             'application/vnd.ms-excel',
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'application/vnd.ms-powerpoint',
-            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-            'text/plain',
+            'text/csv',
         ];
-
+        
         return in_array($this->mime_type, $documentTypes);
     }
 
@@ -180,19 +213,19 @@ class File extends Model
      */
     public function getIsVideoAttribute(): bool
     {
-        return strpos($this->mime_type, 'video/') === 0;
+        return str_starts_with($this->mime_type, 'video/');
     }
 
     /**
-     * Check if file is audio
+     * Check if file is an audio file
      */
     public function getIsAudioAttribute(): bool
     {
-        return strpos($this->mime_type, 'audio/') === 0;
+        return str_starts_with($this->mime_type, 'audio/');
     }
 
     /**
-     * Get the file's URL for download
+     * Get download URL
      */
     public function getDownloadUrlAttribute(): string
     {
@@ -200,10 +233,14 @@ class File extends Model
     }
 
     /**
-     * Get the file's URL for preview
+     * Get preview URL
      */
-    public function getPreviewUrlAttribute(): string
+    public function getPreviewUrlAttribute(): ?string
     {
+        if ($this->search_metadata && isset($this->search_metadata['preview_path'])) {
+            return Storage::disk('local')->url($this->search_metadata['preview_path']);
+        }
+        
         return route('files.preview', $this->id);
     }
 
@@ -248,19 +285,169 @@ class File extends Model
     }
 
     /**
-     * Delete file from storage and database
+     * Delete the physical file from storage
      */
     public function deleteFile(): bool
     {
-        // Delete all versions from storage
-        foreach ($this->versions as $version) {
-            Storage::disk('local')->delete($version->file_path);
+        try {
+            // Delete the main file
+            if (Storage::disk('local')->exists($this->file_path)) {
+                Storage::disk('local')->delete($this->file_path);
+            }
+            
+            // Delete preview if exists
+            if ($this->search_metadata && isset($this->search_metadata['preview_path'])) {
+                if (Storage::disk('local')->exists($this->search_metadata['preview_path'])) {
+                    Storage::disk('local')->delete($this->search_metadata['preview_path']);
+                }
+            }
+            
+            return true;
+        } catch (\Exception $e) {
+            \Log::error("Error deleting file {$this->id}: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Scope for full-text search
+     */
+    public function scopeFullTextSearch($query, $searchTerm)
+    {
+        return $query->where(function($q) use ($searchTerm) {
+            $q->whereRaw('MATCH(name, original_name, description, extracted_text) AGAINST(? IN BOOLEAN MODE)', [$searchTerm])
+              ->orWhere('name', 'like', "%{$searchTerm}%")
+              ->orWhere('original_name', 'like', "%{$searchTerm}%")
+              ->orWhere('description', 'like', "%{$searchTerm}%")
+              ->orWhere('extracted_text', 'like', "%{$searchTerm}%");
+        });
+    }
+
+    /**
+     * Scope for searching within specific content types
+     */
+    public function scopeSearchInContent($query, $searchTerm)
+    {
+        return $query->where('extracted_text', 'like', "%{$searchTerm}%");
+    }
+
+    /**
+     * Scope for files that have been indexed for search
+     */
+    public function scopeIndexed($query)
+    {
+        return $query->whereNotNull('indexed_at');
+    }
+
+    /**
+     * Scope for files that need indexing
+     */
+    public function scopeNeedsIndexing($query)
+    {
+        return $query->whereNull('indexed_at');
+    }
+
+    /**
+     * Get searchable content for this file
+     */
+    public function getSearchableContent(): string
+    {
+        $content = [];
+        
+        if ($this->name) {
+            $content[] = $this->name;
         }
         
-        // Delete current file from storage
-        Storage::disk('local')->delete($this->file_path);
+        if ($this->original_name) {
+            $content[] = $this->original_name;
+        }
         
-        // Delete from database
-        return $this->delete();
+        if ($this->description) {
+            $content[] = $this->description;
+        }
+        
+        if ($this->extracted_text) {
+            $content[] = $this->extracted_text;
+        }
+        
+        return implode(' ', $content);
+    }
+
+    /**
+     * Check if file supports text extraction
+     */
+    public function supportsTextExtraction(): bool
+    {
+        $supportedTypes = [
+            'application/pdf',
+            'text/plain',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ];
+        
+        return in_array($this->mime_type, $supportedTypes);
+    }
+
+    /**
+     * Check if file supports preview generation
+     */
+    public function supportsPreview(): bool
+    {
+        $supportedTypes = [
+            'application/pdf',
+            'image/jpeg',
+            'image/png',
+            'image/gif',
+            'image/bmp',
+            'image/tiff',
+        ];
+        
+        return in_array($this->mime_type, $supportedTypes);
+    }
+
+    /**
+     * Get text content for search
+     */
+    public function getTextContentAttribute(): ?string
+    {
+        return $this->extracted_text;
+    }
+
+    /**
+     * Get search relevance score (for ranking results)
+     */
+    public function getSearchRelevanceScore($searchTerm): float
+    {
+        $score = 0;
+        $searchTerm = strtolower($searchTerm);
+        
+        // Name matches get highest score
+        if (stripos($this->name, $searchTerm) !== false) {
+            $score += 10;
+        }
+        
+        // Original name matches
+        if (stripos($this->original_name, $searchTerm) !== false) {
+            $score += 8;
+        }
+        
+        // Description matches
+        if (stripos($this->description, $searchTerm) !== false) {
+            $score += 5;
+        }
+        
+        // Content matches
+        if (stripos($this->extracted_text, $searchTerm) !== false) {
+            $score += 3;
+        }
+        
+        // Exact matches get bonus
+        if (strtolower($this->name) === $searchTerm) {
+            $score += 5;
+        }
+        
+        return $score;
     }
 }

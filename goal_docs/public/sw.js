@@ -1,6 +1,6 @@
-const CACHE_NAME = 'goaldocs-v1.0.0';
-const STATIC_CACHE_NAME = 'goaldocs-static-v1.0.0';
-const DYNAMIC_CACHE_NAME = 'goaldocs-dynamic-v1.0.0';
+const CACHE_NAME = 'goaldocs-v1.0.1';
+const STATIC_CACHE_NAME = 'goaldocs-static-v1.0.1';
+const DYNAMIC_CACHE_NAME = 'goaldocs-dynamic-v1.0.1';
 
 // Static assets to cache
 const STATIC_ASSETS = [
