@@ -501,8 +501,8 @@ class CollaborationService
      */
     public function getCollaborationFeed(File $file, int $limit = 20): array
     {
-        $activities = RecentActivity::where('resource_id', $file->id)
-            ->whereIn('action', ['comment_add', 'comment_edit', 'comment_delete', 'document_lock', 'document_unlock', 'view'])
+        $activities = RecentActivity::where('file_id', $file->id)
+            ->whereIn('activity_type', ['comment_add', 'comment_edit', 'comment_delete', 'document_lock', 'document_unlock', 'view'])
             ->with('user')
             ->orderBy('created_at', 'desc')
             ->limit($limit)
@@ -511,7 +511,7 @@ class CollaborationService
         return $activities->map(function ($activity) {
             return [
                 'id' => $activity->id,
-                'action' => $activity->action,
+                'action' => $activity->activity_type,
                 'user' => [
                     'id' => $activity->user->id,
                     'name' => $activity->user->name,
@@ -530,7 +530,7 @@ class CollaborationService
      */
     private function getActivityDescription($activity): string
     {
-        switch ($activity->action) {
+        switch ($activity->activity_type) {
             case 'comment_add':
                 return 'added a comment';
             case 'comment_edit':
