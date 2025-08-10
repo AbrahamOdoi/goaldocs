@@ -415,3 +415,26 @@ Route::prefix('advanced-insights')->name('advanced-insights.')->group(function (
     
     Route::get('/download/{filename}', [\App\Http\Controllers\AdvancedInsightsController::class, 'download'])->name('download');
 });
+
+// Phase 9: Advanced Security & Compliance Routes
+Route::prefix('security')->name('security.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\SecurityController::class, 'dashboard'])->name('dashboard');
+    Route::get('/logs', [\App\Http\Controllers\SecurityController::class, 'securityLogs'])->name('logs');
+    Route::get('/audit-logs', [\App\Http\Controllers\SecurityController::class, 'auditLogs'])->name('audit-logs');
+    Route::get('/sessions', [\App\Http\Controllers\SecurityController::class, 'userSessions'])->name('sessions');
+    Route::get('/policies', [\App\Http\Controllers\SecurityController::class, 'policies'])->name('policies');
+    
+    // API routes
+    Route::prefix('api')->name('api.')->group(function () {
+        Route::post('/policies', [\App\Http\Controllers\SecurityController::class, 'createPolicy'])->name('create-policy');
+        Route::put('/policies/{policy}', [\App\Http\Controllers\SecurityController::class, 'updatePolicy'])->name('update-policy');
+        Route::delete('/policies/{policy}', [\App\Http\Controllers\SecurityController::class, 'deletePolicy'])->name('delete-policy');
+        Route::post('/sessions/{session}/deactivate', [\App\Http\Controllers\SecurityController::class, 'deactivateSession'])->name('deactivate-session');
+        Route::post('/users/{user}/deactivate-sessions', [\App\Http\Controllers\SecurityController::class, 'deactivateAllUserSessions'])->name('deactivate-all-sessions');
+        Route::post('/events/{securityLog}/resolve', [\App\Http\Controllers\SecurityController::class, 'resolveSecurityEvent'])->name('resolve-event');
+        Route::get('/stats', [\App\Http\Controllers\SecurityController::class, 'getSecurityStats'])->name('stats');
+        Route::post('/export-logs', [\App\Http\Controllers\SecurityController::class, 'exportSecurityLogs'])->name('export-logs');
+    });
+    
+    Route::get('/download/{filename}', [\App\Http\Controllers\SecurityController::class, 'downloadExport'])->name('download-export');
+});
