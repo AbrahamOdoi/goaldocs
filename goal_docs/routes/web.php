@@ -528,3 +528,21 @@ Route::prefix('system-integration')->name('system-integration.')->group(function
         Route::get('/export-report', [\App\Http\Controllers\SystemIntegrationController::class, 'exportReport'])->name('export-report');
     });
 });
+
+// Performance Optimization Routes
+Route::prefix('performance-optimization')->name('performance-optimization.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\PerformanceOptimizationController::class, 'dashboard'])->name('dashboard');
+    
+    // API routes
+    Route::prefix('api')->name('api.')->group(function () {
+        Route::post('/optimize-database', [\App\Http\Controllers\PerformanceOptimizationController::class, 'optimizeDatabase'])->name('optimize-database');
+        Route::post('/implement-caching', [\App\Http\Controllers\PerformanceOptimizationController::class, 'implementCaching'])->name('implement-caching');
+        Route::post('/optimize-file-processing', [\App\Http\Controllers\PerformanceOptimizationController::class, 'optimizeFileProcessing'])->name('optimize-file-processing');
+        Route::post('/improve-api-performance', [\App\Http\Controllers\PerformanceOptimizationController::class, 'improveApiPerformance'])->name('improve-api-performance');
+        Route::post('/optimize-frontend', [\App\Http\Controllers\PerformanceOptimizationController::class, 'optimizeFrontend'])->name('optimize-frontend');
+        Route::post('/implement-cdn', [\App\Http\Controllers\PerformanceOptimizationController::class, 'implementCDN'])->name('implement-cdn');
+        Route::post('/comprehensive-optimization', [\App\Http\Controllers\PerformanceOptimizationController::class, 'runComprehensiveOptimization'])->name('comprehensive-optimization');
+        Route::get('/performance-metrics', [\App\Http\Controllers\PerformanceOptimizationController::class, 'getPerformanceMetrics'])->name('performance-metrics');
+        Route::get('/export-report', [\App\Http\Controllers\PerformanceOptimizationController::class, 'exportReport'])->name('export-report');
+    });
+});
