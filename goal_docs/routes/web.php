@@ -243,6 +243,18 @@ Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class])->
         Route::get('/{file}/collaboration/sessions', [\App\Http\Controllers\RealTimeController::class, 'getActiveSessions'])->name('collaboration.sessions');
         Route::post('/collaboration/cleanup', [\App\Http\Controllers\RealTimeController::class, 'cleanupSessions'])->name('collaboration.cleanup');
         
+        // OCR routes
+        Route::get('/{file}/ocr', [\App\Http\Controllers\OcrController::class, 'showOcr'])->name('ocr');
+        Route::post('/{file}/ocr', [\App\Http\Controllers\OcrController::class, 'processOcr'])->name('ocr.process');
+        Route::get('/{file}/ocr/result', [\App\Http\Controllers\OcrController::class, 'getOcrResult'])->name('ocr.result');
+        Route::put('/ocr/results/{ocrResult}', [\App\Http\Controllers\OcrController::class, 'updateOcrResult'])->name('ocr.update');
+        Route::delete('/ocr/results/{ocrResult}', [\App\Http\Controllers\OcrController::class, 'deleteOcrResult'])->name('ocr.delete');
+        Route::post('/ocr/batch', [\App\Http\Controllers\OcrController::class, 'processBatchOcr'])->name('ocr.batch');
+        Route::get('/ocr/stats', [\App\Http\Controllers\OcrController::class, 'getOcrStats'])->name('ocr.stats');
+        Route::get('/ocr/languages', [\App\Http\Controllers\OcrController::class, 'getSupportedLanguages'])->name('ocr.languages');
+        Route::get('/ocr/options', [\App\Http\Controllers\OcrController::class, 'getOcrOptions'])->name('ocr.options');
+        Route::get('/ocr/queue-status', [\App\Http\Controllers\OcrController::class, 'getQueueStatus'])->name('ocr.queue-status');
+        
         Route::post('/permissions/assign', [\App\Http\Controllers\FileController::class, 'assignPermissions'])->name('permissions.assign');
         Route::delete('/permissions/remove', [\App\Http\Controllers\FileController::class, 'removePermission'])->name('permissions.remove');
     });
