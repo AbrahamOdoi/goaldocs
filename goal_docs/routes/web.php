@@ -243,10 +243,6 @@ Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class])->
         Route::get('/{file}/collaboration/sessions', [\App\Http\Controllers\RealTimeController::class, 'getActiveSessions'])->name('collaboration.sessions');
         Route::post('/collaboration/cleanup', [\App\Http\Controllers\RealTimeController::class, 'cleanupSessions'])->name('collaboration.cleanup');
         
-        // File upload and folder creation routes
-        Route::post('/upload', [\App\Http\Controllers\FileController::class, 'upload'])->name('files.upload');
-        Route::post('/folders/create', [\App\Http\Controllers\FileController::class, 'createFolder'])->name('files.folders.create');
-        
         Route::post('/permissions/assign', [\App\Http\Controllers\FileController::class, 'assignPermissions'])->name('permissions.assign');
         Route::delete('/permissions/remove', [\App\Http\Controllers\FileController::class, 'removePermission'])->name('permissions.remove');
     });
