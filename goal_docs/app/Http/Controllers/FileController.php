@@ -121,6 +121,20 @@ class FileController extends Controller
         $folders = $foldersQuery->orderBy('name')->get();
         $files = $filesQuery->orderBy('name')->get();
         
+        // Debug logging for folder content
+        if ($currentFolder) {
+            \Log::info('Folder content debug', [
+                'folder_id' => $currentFolder->id,
+                'folder_name' => $currentFolder->name,
+                'user_type' => $user->type,
+                'user_type_name' => $user->type_name,
+                'files_count' => $files->count(),
+                'folders_count' => $folders->count(),
+                'files' => $files->pluck('name')->toArray(),
+                'folders' => $folders->pluck('name')->toArray()
+            ]);
+        }
+        
         // Build breadcrumb trail
         $breadcrumbs = $this->buildBreadcrumbs($currentFolder);
         

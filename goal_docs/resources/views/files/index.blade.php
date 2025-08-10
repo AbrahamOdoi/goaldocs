@@ -225,7 +225,20 @@
                                                     @if($folder->description)
                                                         <p class="text-muted small mb-1" style="font-size: 0.75rem; line-height: 1.2; max-height: 2.4rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">{{ $folder->description }}</p>
                                                     @endif
-                                                    <small class="text-muted">{{ $folder->activeFiles->count() + $folder->activeChildren->count() }} items</small>
+                                                    <small class="text-muted">
+                                                        @php
+                                                            $user = auth()->user();
+                                                            if ($user->type === 'individual') {
+                                                                $visibleFiles = $folder->activeFiles()->forUserType($user->type)->count();
+                                                                $visibleFolders = $folder->activeChildren()->forUserType($user->type)->count();
+                                                            } else {
+                                                                $visibleFiles = $folder->activeFiles()->forOrganization($user->type, $user->type_name)->count();
+                                                                $visibleFolders = $folder->activeChildren()->forOrganization($user->type, $user->type_name)->count();
+                                                            }
+                                                            $totalVisible = $visibleFiles + $visibleFolders;
+                                                        @endphp
+                                                        {{ $totalVisible }} items
+                                                    </small>
                                                 </a>
                                             </div>
                                         </div>
