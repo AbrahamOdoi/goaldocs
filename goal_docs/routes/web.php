@@ -371,3 +371,25 @@ Route::prefix('shared')->name('shared.')->group(function () {
     Route::get('/{token}', [\App\Http\Controllers\ExternalShareController::class, 'accessShared'])->name('access');
     Route::get('/{token}/download', [\App\Http\Controllers\ExternalShareController::class, 'downloadShared'])->name('download');
 });
+
+// Business Intelligence routes
+Route::prefix('business-intelligence')->name('bi.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\BusinessIntelligenceController::class, 'dashboard'])->name('dashboard');
+    
+    // API routes
+    Route::prefix('api')->name('api.')->group(function () {
+        Route::get('/kpis', [\App\Http\Controllers\BusinessIntelligenceController::class, 'kpis'])->name('kpis');
+        Route::get('/trends', [\App\Http\Controllers\BusinessIntelligenceController::class, 'trends'])->name('trends');
+        Route::get('/comparisons', [\App\Http\Controllers\BusinessIntelligenceController::class, 'comparisons'])->name('comparisons');
+        Route::get('/insights', [\App\Http\Controllers\BusinessIntelligenceController::class, 'insights'])->name('insights');
+        Route::get('/predictions', [\App\Http\Controllers\BusinessIntelligenceController::class, 'predictions'])->name('predictions');
+        Route::get('/anomalies', [\App\Http\Controllers\BusinessIntelligenceController::class, 'anomalies'])->name('anomalies');
+        Route::get('/realtime', [\App\Http\Controllers\BusinessIntelligenceController::class, 'realtime'])->name('realtime');
+        Route::get('/summary', [\App\Http\Controllers\BusinessIntelligenceController::class, 'summary'])->name('summary');
+        Route::post('/export', [\App\Http\Controllers\BusinessIntelligenceController::class, 'export'])->name('export');
+        Route::get('/config', [\App\Http\Controllers\BusinessIntelligenceController::class, 'config'])->name('config');
+        Route::post('/config', [\App\Http\Controllers\BusinessIntelligenceController::class, 'updateConfig'])->name('update-config');
+    });
+    
+    Route::get('/download/{filename}', [\App\Http\Controllers\BusinessIntelligenceController::class, 'download'])->name('download');
+});

@@ -112,6 +112,12 @@
               <div data-i18n="Reports">Reports</div>
             </a>
           </li>
+          <li class="menu-item">
+            <a href="{{ route('bi.dashboard') }}" class="menu-link">
+              <i class="menu-icon tf-icons ti ti-brain"></i>
+              <div data-i18n="Business Intelligence">Business Intelligence</div>
+            </a>
+          </li>
     
     <li class="menu-item">
       <a href="javascript:void(0);" class="menu-link" onclick="showMyShares()">
