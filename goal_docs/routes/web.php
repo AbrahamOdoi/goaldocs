@@ -438,3 +438,23 @@ Route::prefix('security')->name('security.')->group(function () {
     
     Route::get('/download/{filename}', [\App\Http\Controllers\SecurityController::class, 'downloadExport'])->name('download-export');
 });
+
+// Compliance & Audit System Routes
+Route::prefix('compliance')->name('compliance.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\ComplianceController::class, 'dashboard'])->name('dashboard');
+    Route::get('/reports', [\App\Http\Controllers\ComplianceController::class, 'reports'])->name('reports');
+    Route::get('/audit-logs', [\App\Http\Controllers\ComplianceController::class, 'auditLogs'])->name('audit-logs');
+    Route::get('/violations', [\App\Http\Controllers\ComplianceController::class, 'violations'])->name('violations');
+    Route::get('/recommendations', [\App\Http\Controllers\ComplianceController::class, 'recommendations'])->name('recommendations');
+    Route::get('/settings', [\App\Http\Controllers\ComplianceController::class, 'settings'])->name('settings');
+    
+    // API routes
+    Route::prefix('api')->name('api.')->group(function () {
+        Route::post('/generate-report', [\App\Http\Controllers\ComplianceController::class, 'generateReport'])->name('generate-report');
+        Route::post('/export-report', [\App\Http\Controllers\ComplianceController::class, 'exportReport'])->name('export-report');
+        Route::get('/stats', [\App\Http\Controllers\ComplianceController::class, 'getStats'])->name('stats');
+        Route::post('/settings', [\App\Http\Controllers\ComplianceController::class, 'updateSettings'])->name('update-settings');
+    });
+    
+    Route::get('/download/{filename}', [\App\Http\Controllers\ComplianceController::class, 'downloadReport'])->name('download-report');
+});
