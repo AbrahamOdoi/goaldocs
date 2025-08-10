@@ -124,7 +124,15 @@ class FileController extends Controller
         // Build breadcrumb trail
         $breadcrumbs = $this->buildBreadcrumbs($currentFolder);
         
-        return view('files.index', compact('folders', 'files', 'currentFolder', 'breadcrumbs'));
+        // Add cache-busting headers to prevent stale data
+        $response = response()->view('files.index', compact('folders', 'files', 'currentFolder', 'breadcrumbs'));
+        $response->header('Cache-Control', 'no-cache, no-store, must-revalidate');
+        $response->header('Pragma', 'no-cache');
+        $response->header('Expires', '0');
+        $response->header('Last-Modified', gmdate('D, d M Y H:i:s') . ' GMT');
+        $response->header('ETag', md5(serialize($folders) . serialize($files)));
+        
+        return $response;
     }
 
     /**

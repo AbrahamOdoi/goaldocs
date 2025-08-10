@@ -51,6 +51,18 @@
     </script>
     
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    
+    <!-- Cache-busting meta tags -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <!-- Debug info -->
+    <script>
+        console.log('Page loaded at:', new Date().toISOString());
+        console.log('Folders count:', {{ $folders->count() }});
+        console.log('Files count:', {{ $files->count() }});
+    </script>
 </head>
 
 <body>
@@ -1003,7 +1015,8 @@ function uploadFiles(files) {
         hideLoading();
         if (data.success) {
             showAlert('success', data.message);
-            location.reload();
+            // Force a hard refresh to ensure fresh data
+            window.location.href = window.location.href + '?t=' + Date.now();
         } else {
             showAlert('error', data.error || 'Upload failed');
             if (data.errors && data.errors.length > 0) {
@@ -1042,10 +1055,10 @@ function uploadFilesFromModal() {
         hideLoading();
         if (data.success) {
             showAlert('success', data.message);
-            // Close modal and reload
+            // Close modal and force a hard refresh to ensure fresh data
             const modal = bootstrap.Modal.getInstance(document.getElementById('uploadModal'));
             modal.hide();
-            location.reload();
+            window.location.href = window.location.href + '?t=' + Date.now();
         } else {
             showAlert('error', data.error || 'Upload failed');
             if (data.errors && data.errors.length > 0) {
@@ -1112,7 +1125,8 @@ function createFolder() {
     .then(data => {
         if (data.success) {
             showAlert('success', data.message);
-            location.reload();
+            // Force a hard refresh to ensure fresh data
+            window.location.href = window.location.href + '?t=' + Date.now();
         } else {
             showAlert('error', data.error);
         }
