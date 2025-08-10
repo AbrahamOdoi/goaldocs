@@ -353,8 +353,8 @@ class CollaborationService
         
         return Cache::remember($cacheKey, 30, function () use ($file) {
             // Get users who have viewed the file in the last 5 minutes
-            $recentActivity = RecentActivity::where('resource_id', $file->id)
-                ->where('action', 'view')
+            $recentActivity = RecentActivity::where('file_id', $file->id)
+                ->where('activity_type', 'view')
                 ->where('created_at', '>', now()->subMinutes(5))
                 ->with('user')
                 ->get()
@@ -414,7 +414,7 @@ class CollaborationService
                 ->where('commentable_id', $file->id)
                 ->distinct('user_id')
                 ->count(),
-            'recent_activity' => RecentActivity::where('resource_id', $file->id)
+            'recent_activity' => RecentActivity::where('file_id', $file->id)
                 ->where('created_at', '>', now()->subDays(7))
                 ->count(),
             'lock_history' => DocumentLock::where('file_id', $file->id)

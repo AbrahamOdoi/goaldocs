@@ -235,8 +235,8 @@ class ManageCollaboration extends Command
         $this->info("Recent activity (7 days): {$recentActivity}");
         
         // Show activity by type
-        $activityByType = RecentActivity::selectRaw('action, COUNT(*) as count')
-            ->groupBy('action')
+        $activityByType = RecentActivity::selectRaw('activity_type, COUNT(*) as count')
+            ->groupBy('activity_type')
             ->orderBy('count', 'desc')
             ->get();
             
@@ -244,7 +244,7 @@ class ManageCollaboration extends Command
             $this->newLine();
             $this->info('Activity by type:');
             foreach ($activityByType as $activity) {
-                $this->info("  - {$activity->action}: {$activity->count}");
+                $this->info("  - {$activity->activity_type}: {$activity->count}");
             }
         }
     }
