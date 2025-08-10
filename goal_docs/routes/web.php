@@ -255,6 +255,18 @@ Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class])->
         Route::get('/ocr/options', [\App\Http\Controllers\OcrController::class, 'getOcrOptions'])->name('ocr.options');
         Route::get('/ocr/queue-status', [\App\Http\Controllers\OcrController::class, 'getQueueStatus'])->name('ocr.queue-status');
         
+        // Document Conversion routes
+        Route::get('/{file}/conversion', [\App\Http\Controllers\DocumentConversionController::class, 'showConversion'])->name('conversion');
+        Route::post('/{file}/conversion', [\App\Http\Controllers\DocumentConversionController::class, 'convertFile'])->name('conversion.process');
+        Route::get('/{file}/conversion/supported', [\App\Http\Controllers\DocumentConversionController::class, 'getSupportedConversions'])->name('conversion.supported');
+        Route::get('/{file}/conversion/history', [\App\Http\Controllers\DocumentConversionController::class, 'getConversionHistory'])->name('conversion.history');
+        Route::get('/{file}/conversion/result/{targetFormat}', [\App\Http\Controllers\DocumentConversionController::class, 'getConversionResult'])->name('conversion.result');
+        Route::delete('/conversion/{conversion}', [\App\Http\Controllers\DocumentConversionController::class, 'deleteConversion'])->name('conversion.delete');
+        Route::get('/conversion/{conversion}/download', [\App\Http\Controllers\DocumentConversionController::class, 'downloadConvertedFile'])->name('conversion.download');
+        Route::get('/conversion/{conversion}/preview', [\App\Http\Controllers\DocumentConversionController::class, 'previewConvertedFile'])->name('conversion.preview');
+        Route::get('/conversion/stats', [\App\Http\Controllers\DocumentConversionController::class, 'getConversionStats'])->name('conversion.stats');
+        Route::get('/conversion/queue-status', [\App\Http\Controllers\DocumentConversionController::class, 'getQueueStatus'])->name('conversion.queue-status');
+        
         Route::post('/permissions/assign', [\App\Http\Controllers\FileController::class, 'assignPermissions'])->name('permissions.assign');
         Route::delete('/permissions/remove', [\App\Http\Controllers\FileController::class, 'removePermission'])->name('permissions.remove');
     });
