@@ -309,7 +309,7 @@ document.getElementById('addCommentForm').addEventListener('submit', function(e)
     e.preventDefault();
     const content = document.getElementById('commentContent').value;
     
-    fetch(`/files/${currentFileId}/comments`, {
+    fetch(`/files/${currentFileId}/collaboration/comments`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

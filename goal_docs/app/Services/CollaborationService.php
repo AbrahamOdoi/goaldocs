@@ -44,8 +44,9 @@ class CollaborationService
             $user->type_name,
             'comment_add',
             $file->id,
-            $comment->id,
+            null,
             [
+                'comment_id' => $comment->id,
                 'comment_content' => Str::limit($content, 100),
                 'file_name' => $file->name,
             ]
