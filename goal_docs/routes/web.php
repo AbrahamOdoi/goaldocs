@@ -267,6 +267,19 @@ Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class])->
         Route::get('/conversion/stats', [\App\Http\Controllers\DocumentConversionController::class, 'getConversionStats'])->name('conversion.stats');
         Route::get('/conversion/queue-status', [\App\Http\Controllers\DocumentConversionController::class, 'getQueueStatus'])->name('conversion.queue-status');
         
+        // Batch Processing routes
+        Route::get('/batch-processing', [\App\Http\Controllers\BatchProcessingController::class, 'index'])->name('batch-processing.index');
+        Route::get('/batch-processing/create', [\App\Http\Controllers\BatchProcessingController::class, 'create'])->name('batch-processing.create');
+        Route::post('/batch-processing', [\App\Http\Controllers\BatchProcessingController::class, 'store'])->name('batch-processing.store');
+        Route::get('/batch-processing/{batchJob}', [\App\Http\Controllers\BatchProcessingController::class, 'show'])->name('batch-processing.show');
+        Route::post('/batch-processing/{batchJob}/start', [\App\Http\Controllers\BatchProcessingController::class, 'start'])->name('batch-processing.start');
+        Route::post('/batch-processing/{batchJob}/cancel', [\App\Http\Controllers\BatchProcessingController::class, 'cancel'])->name('batch-processing.cancel');
+        Route::delete('/batch-processing/{batchJob}', [\App\Http\Controllers\BatchProcessingController::class, 'destroy'])->name('batch-processing.destroy');
+        Route::get('/batch-processing/{batchJob}/status', [\App\Http\Controllers\BatchProcessingController::class, 'getStatus'])->name('batch-processing.status');
+        Route::get('/batch-processing/stats', [\App\Http\Controllers\BatchProcessingController::class, 'getStats'])->name('batch-processing.stats');
+        Route::get('/batch-processing/operations', [\App\Http\Controllers\BatchProcessingController::class, 'getSupportedOperations'])->name('batch-processing.operations');
+        Route::get('/batch-processing/files', [\App\Http\Controllers\BatchProcessingController::class, 'getUserFiles'])->name('batch-processing.files');
+        
         Route::post('/permissions/assign', [\App\Http\Controllers\FileController::class, 'assignPermissions'])->name('permissions.assign');
         Route::delete('/permissions/remove', [\App\Http\Controllers\FileController::class, 'removePermission'])->name('permissions.remove');
     });

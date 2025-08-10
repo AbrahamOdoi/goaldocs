@@ -94,6 +94,12 @@
         <div data-i18n="Workflows">Workflows</div>
       </a>
     </li>
+    <li class="menu-item">
+      <a href="{{ route('batch-processing.index') }}" class="menu-link">
+        <i class="menu-icon tf-icons ti ti-settings"></i>
+        <div data-i18n="Batch Processing">Batch Processing</div>
+      </a>
+    </li>
     
     <li class="menu-item">
       <a href="javascript:void(0);" class="menu-link" onclick="showMyShares()">
