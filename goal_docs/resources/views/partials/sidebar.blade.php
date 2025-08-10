@@ -100,6 +100,12 @@
         <div data-i18n="Batch Processing">Batch Processing</div>
       </a>
     </li>
+    <li class="menu-item">
+      <a href="{{ route('analytics.dashboard') }}" class="menu-link">
+        <i class="menu-icon tf-icons ti ti-chart-bar"></i>
+        <div data-i18n="Analytics">Analytics</div>
+      </a>
+    </li>
     
     <li class="menu-item">
       <a href="javascript:void(0);" class="menu-link" onclick="showMyShares()">

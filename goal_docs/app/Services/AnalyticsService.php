@@ -5,10 +5,10 @@ namespace App\Services;
 use App\Models\File;
 use App\Models\User;
 use App\Models\RecentActivity;
-use App\Models\SecurityAudit;
-use App\Models\WorkflowInstance;
-use App\Models\Comment;
-use App\Models\DocumentLock;
+use App\Models\BatchJob;
+use App\Models\OcrResult;
+use App\Models\DocumentConversion;
+use App\Models\TextExtraction;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Carbon\Carbon;
@@ -16,586 +16,574 @@ use Carbon\Carbon;
 class AnalyticsService
 {
     /**
-     * Get comprehensive analytics dashboard data
+     * Get document usage analytics
      */
-    public function getDashboardAnalytics(): array
+    public function getDocumentUsageAnalytics($userId = null, $period = '30d'): array
     {
-        $cacheKey = 'analytics_dashboard_' . date('Y-m-d');
+        $cacheKey = "doc_usage_analytics_{$userId}_{$period}";
         
-        return Cache::remember($cacheKey, 3600, function () {
+        return Cache::remember($cacheKey, 3600, function () use ($userId, $period) {
+            $startDate = $this->getStartDate($period);
+            
+            $query = RecentActivity::where('created_at', '>=', $startDate);
+            
+            if ($userId) {
+                $query->where('user_id', $userId);
+            }
+            
+            $activities = $query->get();
+            
             return [
-                'overview' => $this->getOverviewStats(),
-                'file_analytics' => $this->getFileAnalytics(),
-                'user_analytics' => $this->getUserAnalytics(),
-                'search_analytics' => $this->getSearchAnalytics(),
-                'collaboration_analytics' => $this->getCollaborationAnalytics(),
-                'workflow_analytics' => $this->getWorkflowAnalytics(),
-                'security_analytics' => $this->getSecurityAnalytics(),
-                'performance_analytics' => $this->getPerformanceAnalytics(),
-                'trends' => $this->getTrends(),
-                'top_performers' => $this->getTopPerformers(),
+                'total_activities' => $activities->count(),
+                'file_views' => $activities->where('activity_type', 'view')->count(),
+                'file_downloads' => $activities->where('activity_type', 'download')->count(),
+                'file_uploads' => $activities->where('activity_type', 'upload')->count(),
+                'file_shares' => $activities->where('activity_type', 'share')->count(),
+                'daily_activity' => $this->getDailyActivityData($activities),
+                'top_files' => $this->getTopFiles($userId, $period),
+                'user_engagement' => $this->getUserEngagement($userId, $period),
             ];
         });
     }
 
     /**
-     * Get overview statistics
+     * Get processing analytics (OCR, conversion, batch)
      */
-    private function getOverviewStats(): array
+    public function getProcessingAnalytics($userId = null, $period = '30d'): array
     {
-        $totalFiles = File::count();
-        $totalUsers = User::count();
-        $totalStorage = File::sum('file_size');
-        $activeUsers = User::where('last_login_at', '>', now()->subDays(30))->count();
+        $cacheKey = "processing_analytics_{$userId}_{$period}";
         
-        // Recent activity
-        $recentUploads = File::where('created_at', '>', now()->subDays(7))->count();
-        $recentDownloads = RecentActivity::where('activity_type', 'file_download')
-            ->where('created_at', '>', now()->subDays(7))
-            ->count();
+        return Cache::remember($cacheKey, 3600, function () use ($userId, $period) {
+            $startDate = $this->getStartDate($period);
+            
+            // OCR Analytics
+            $ocrQuery = OcrResult::where('created_at', '>=', $startDate);
+            if ($userId) {
+                $ocrQuery->whereHas('file', function ($q) use ($userId) {
+                    $q->where('uploaded_by', $userId);
+                });
+            }
+            $ocrResults = $ocrQuery->get();
+            
+            // Conversion Analytics
+            $conversionQuery = DocumentConversion::where('created_at', '>=', $startDate);
+            if ($userId) {
+                $conversionQuery->whereHas('file', function ($q) use ($userId) {
+                    $q->where('uploaded_by', $userId);
+                });
+            }
+            $conversions = $conversionQuery->get();
+            
+            // Batch Processing Analytics
+            $batchQuery = BatchJob::where('created_at', '>=', $startDate);
+            if ($userId) {
+                $batchQuery->where('user_id', $userId);
+            }
+            $batchJobs = $batchQuery->get();
+            
+            // Text Extraction Analytics
+            $extractionQuery = TextExtraction::where('created_at', '>=', $startDate);
+            if ($userId) {
+                $extractionQuery->whereHas('file', function ($q) use ($userId) {
+                    $q->where('uploaded_by', $userId);
+                });
+            }
+            $extractions = $extractionQuery->get();
+            
+            return [
+                'ocr' => [
+                    'total_processed' => $ocrResults->count(),
+                    'successful' => $ocrResults->where('status', 'completed')->count(),
+                    'failed' => $ocrResults->where('status', 'failed')->count(),
+                    'average_confidence' => $ocrResults->where('status', 'completed')->avg('confidence_score'),
+                    'average_processing_time' => $ocrResults->where('status', 'completed')->avg('processing_time'),
+                    'language_distribution' => $this->getLanguageDistribution($ocrResults),
+                ],
+                'conversion' => [
+                    'total_conversions' => $conversions->count(),
+                    'successful' => $conversions->where('status', 'completed')->count(),
+                    'failed' => $conversions->where('status', 'failed')->count(),
+                    'format_distribution' => $this->getFormatDistribution($conversions),
+                    'average_processing_time' => $conversions->where('status', 'completed')->avg('processing_time'),
+                    'quality_scores' => $this->getQualityScores($conversions),
+                ],
+                'batch_processing' => [
+                    'total_jobs' => $batchJobs->count(),
+                    'completed' => $batchJobs->whereIn('status', ['completed', 'completed_with_errors'])->count(),
+                    'processing' => $batchJobs->where('status', 'processing')->count(),
+                    'failed' => $batchJobs->where('status', 'failed')->count(),
+                    'total_files_processed' => $batchJobs->sum('total_files'),
+                    'successful_files' => $batchJobs->sum('successful_files'),
+                    'failed_files' => $batchJobs->sum('failed_files'),
+                    'operation_distribution' => $this->getOperationDistribution($batchJobs),
+                ],
+                'text_extraction' => [
+                    'total_extractions' => $extractions->count(),
+                    'successful' => $extractions->where('status', 'completed')->count(),
+                    'failed' => $extractions->where('status', 'failed')->count(),
+                    'average_processing_time' => $extractions->where('status', 'completed')->avg('processing_time'),
+                    'extraction_types' => $this->getExtractionTypeDistribution($extractions),
+                    'quality_scores' => $this->getExtractionQualityScores($extractions),
+                ],
+            ];
+        });
+    }
+
+    /**
+     * Get storage analytics
+     */
+    public function getStorageAnalytics($userId = null, $period = '30d'): array
+    {
+        $cacheKey = "storage_analytics_{$userId}_{$period}";
         
-        // Growth metrics
-        $filesGrowth = $this->calculateGrowth('files', 30);
-        $usersGrowth = $this->calculateGrowth('users', 30);
-        $storageGrowth = $this->calculateStorageGrowth(30);
+        return Cache::remember($cacheKey, 3600, function () use ($userId, $period) {
+            $startDate = $this->getStartDate($period);
+            
+            $fileQuery = File::where('created_at', '>=', $startDate);
+            if ($userId) {
+                $fileQuery->where('uploaded_by', $userId);
+            }
+            $files = $fileQuery->get();
+            
+            $totalSize = $files->sum('file_size');
+            $fileCount = $files->count();
+            
+            return [
+                'total_storage_used' => $totalSize,
+                'formatted_storage' => $this->formatBytes($totalSize),
+                'total_files' => $fileCount,
+                'average_file_size' => $fileCount > 0 ? $totalSize / $fileCount : 0,
+                'file_type_distribution' => $this->getFileTypeDistribution($files),
+                'storage_growth' => $this->getStorageGrowth($userId, $period),
+                'largest_files' => $this->getLargestFiles($userId, 10),
+                'storage_by_user_type' => $this->getStorageByUserType($userId),
+            ];
+        });
+    }
+
+    /**
+     * Get user activity analytics
+     */
+    public function getUserActivityAnalytics($userId = null, $period = '30d'): array
+    {
+        $cacheKey = "user_activity_analytics_{$userId}_{$period}";
+        
+        return Cache::remember($cacheKey, 3600, function () use ($userId, $period) {
+            $startDate = $this->getStartDate($period);
+            
+            $query = RecentActivity::where('created_at', '>=', $startDate);
+            if ($userId) {
+                $query->where('user_id', $userId);
+            }
+            $activities = $query->get();
+            
+            return [
+                'total_activities' => $activities->count(),
+                'active_users' => $activities->unique('user_id')->count(),
+                'activity_by_type' => $this->getActivityByType($activities),
+                'peak_activity_hours' => $this->getPeakActivityHours($activities),
+                'activity_trends' => $this->getActivityTrends($activities),
+                'user_productivity' => $this->getUserProductivity($userId, $period),
+                'collaboration_metrics' => $this->getCollaborationMetrics($userId, $period),
+            ];
+        });
+    }
+
+    /**
+     * Get comprehensive dashboard analytics
+     */
+    public function getDashboardAnalytics($userId = null): array
+    {
+        $cacheKey = "dashboard_analytics_{$userId}";
+        
+        return Cache::remember($cacheKey, 1800, function () use ($userId) {
+            return [
+                'document_usage' => $this->getDocumentUsageAnalytics($userId, '7d'),
+                'processing' => $this->getProcessingAnalytics($userId, '7d'),
+                'storage' => $this->getStorageAnalytics($userId, '7d'),
+                'user_activity' => $this->getUserActivityAnalytics($userId, '7d'),
+                'quick_stats' => $this->getQuickStats($userId),
+                'recent_activity' => $this->getRecentActivity($userId, 10),
+                'system_health' => $this->getSystemHealth(),
+            ];
+        });
+    }
+
+    /**
+     * Get quick stats for dashboard
+     */
+    private function getQuickStats($userId = null): array
+    {
+        $today = Carbon::today();
+        
+        $fileQuery = File::whereDate('created_at', $today);
+        $activityQuery = RecentActivity::whereDate('created_at', $today);
+        $batchQuery = BatchJob::whereDate('created_at', $today);
+        
+        if ($userId) {
+            $fileQuery->where('uploaded_by', $userId);
+            $activityQuery->where('user_id', $userId);
+            $batchQuery->where('user_id', $userId);
+        }
         
         return [
-            'total_files' => $totalFiles,
-            'total_users' => $totalUsers,
-            'total_storage_gb' => round($totalStorage / (1024 * 1024 * 1024), 2),
-            'active_users' => $activeUsers,
-            'recent_uploads' => $recentUploads,
-            'recent_downloads' => $recentDownloads,
-            'files_growth_percent' => $filesGrowth,
-            'users_growth_percent' => $usersGrowth,
-            'storage_growth_percent' => $storageGrowth,
+            'files_uploaded_today' => $fileQuery->count(),
+            'activities_today' => $activityQuery->count(),
+            'batch_jobs_today' => $batchQuery->count(),
+            'storage_used_today' => $fileQuery->sum('file_size'),
         ];
     }
 
     /**
-     * Get file analytics
+     * Get recent activity
      */
-    private function getFileAnalytics(): array
+    private function getRecentActivity($userId = null, $limit = 10): array
     {
-        // File types distribution
-        $fileTypes = File::selectRaw('mime_type, COUNT(*) as count')
-            ->groupBy('mime_type')
-            ->orderBy('count', 'desc')
-            ->limit(10)
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'type' => $this->getFileTypeName($item->mime_type),
-                    'count' => $item->count,
-                    'percentage' => round(($item->count / File::count()) * 100, 1)
-                ];
-            });
-
-        // File size distribution
-        $sizeRanges = [
-            'Small (< 1MB)' => File::where('file_size', '<', 1024 * 1024)->count(),
-            'Medium (1-10MB)' => File::whereBetween('file_size', [1024 * 1024, 10 * 1024 * 1024])->count(),
-            'Large (10-100MB)' => File::whereBetween('file_size', [10 * 1024 * 1024, 100 * 1024 * 1024])->count(),
-            'Very Large (> 100MB)' => File::where('file_size', '>', 100 * 1024 * 1024)->count(),
-        ];
-
-        // Most accessed files
-        $mostAccessed = File::withCount(['activities as access_count' => function ($query) {
-                $query->where('activity_type', 'file_access');
-            }])
-            ->orderBy('access_count', 'desc')
-            ->limit(10)
-            ->get()
-            ->map(function ($file) {
-                return [
-                    'name' => $file->name,
-                    'access_count' => $file->access_count,
-                    'size' => $file->human_size,
-                    'last_accessed' => $file->last_accessed_at?->diffForHumans(),
-                ];
-            });
-
-        // Upload trends (last 30 days)
-        $uploadTrends = $this->getDailyTrends('files', 30);
-
-        return [
-            'file_types' => $fileTypes,
-            'size_distribution' => $sizeRanges,
-            'most_accessed' => $mostAccessed,
-            'upload_trends' => $uploadTrends,
-        ];
-    }
-
-    /**
-     * Get user analytics
-     */
-    private function getUserAnalytics(): array
-    {
-        // User activity
-        $activeUsers = User::where('last_login_at', '>', now()->subDays(30))->count();
-        $newUsers = User::where('created_at', '>', now()->subDays(30))->count();
-        $totalUsers = User::count();
-
-        // User engagement
-        $userEngagement = User::withCount(['files', 'activities'])
-            ->orderBy('activities_count', 'desc')
-            ->limit(10)
-            ->get()
-            ->map(function ($user) {
-                return [
-                    'name' => $user->name,
-                    'files_count' => $user->files_count,
-                    'activities_count' => $user->activities_count,
-                    'last_active' => $user->last_login_at?->diffForHumans(),
-                ];
-            });
-
-        // User registration trends
-        $registrationTrends = $this->getDailyTrends('users', 30);
-
-        // User types distribution
-        $userTypes = User::selectRaw('type, COUNT(*) as count')
-            ->groupBy('type')
-            ->get()
-            ->map(function ($item) use ($totalUsers) {
-                return [
-                    'type' => ucfirst($item->type),
-                    'count' => $item->count,
-                    'percentage' => round(($item->count / $totalUsers) * 100, 1)
-                ];
-            });
-
-        return [
-            'active_users' => $activeUsers,
-            'new_users' => $newUsers,
-            'total_users' => $totalUsers,
-            'engagement_rate' => round(($activeUsers / $totalUsers) * 100, 1),
-            'user_engagement' => $userEngagement,
-            'registration_trends' => $registrationTrends,
-            'user_types' => $userTypes,
-        ];
-    }
-
-    /**
-     * Get search analytics
-     */
-    private function getSearchAnalytics(): array
-    {
-        // Search activity
-        $totalSearches = RecentActivity::where('activity_type', 'search')->count();
-        $recentSearches = RecentActivity::where('activity_type', 'search')
-            ->where('created_at', '>', now()->subDays(7))
-            ->count();
-
-        // Popular search terms
-        $popularSearches = RecentActivity::where('activity_type', 'search')
-            ->selectRaw('metadata->>"$.search_term" as search_term, COUNT(*) as count')
-            ->groupBy('search_term')
-            ->orderBy('count', 'desc')
-            ->limit(10)
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'term' => $item->search_term,
-                    'count' => $item->count,
-                ];
-            });
-
-        // Search success rate
-        $successfulSearches = RecentActivity::where('activity_type', 'search')
-            ->whereRaw('JSON_EXTRACT(metadata, "$.results_count") > 0')
-            ->count();
+        $query = RecentActivity::with(['user', 'file'])
+            ->orderBy('created_at', 'desc')
+            ->limit($limit);
+            
+        if ($userId) {
+            $query->where('user_id', $userId);
+        }
         
-        $searchSuccessRate = $totalSearches > 0 ? round(($successfulSearches / $totalSearches) * 100, 1) : 0;
+        return $query->get()->map(function ($activity) {
+            return [
+                'id' => $activity->id,
+                'user_name' => $activity->user->name ?? 'Unknown',
+                'activity_type' => $activity->activity_type,
+                'file_name' => $activity->file->name ?? 'N/A',
+                'created_at' => $activity->created_at->format('M j, Y g:i A'),
+                'description' => $this->getActivityDescription($activity),
+            ];
+        })->toArray();
+    }
 
-        // Search trends
-        $searchTrends = $this->getDailyTrends('search', 30);
-
+    /**
+     * Get system health metrics
+     */
+    private function getSystemHealth(): array
+    {
         return [
-            'total_searches' => $totalSearches,
-            'recent_searches' => $recentSearches,
-            'popular_terms' => $popularSearches,
-            'success_rate' => $searchSuccessRate,
-            'search_trends' => $searchTrends,
+            'database_connections' => DB::connection()->getPdo() ? 'Healthy' : 'Unhealthy',
+            'cache_status' => Cache::has('health_check') ? 'Healthy' : 'Unhealthy',
+            'storage_available' => $this->getStorageAvailable(),
+            'active_users' => User::where('last_seen_at', '>=', now()->subMinutes(5))->count(),
+            'processing_queue' => BatchJob::where('status', 'processing')->count(),
         ];
     }
 
     /**
-     * Get collaboration analytics
+     * Helper methods for data processing
      */
-    private function getCollaborationAnalytics(): array
+    private function getStartDate($period): Carbon
     {
-        // Comments
-        $totalComments = Comment::count();
-        $recentComments = Comment::where('created_at', '>', now()->subDays(7))->count();
-        $commentsPerFile = $totalComments > 0 ? round($totalComments / File::count(), 1) : 0;
+        return match ($period) {
+            '7d' => now()->subDays(7),
+            '30d' => now()->subDays(30),
+            '90d' => now()->subDays(90),
+            '1y' => now()->subYear(),
+            default => now()->subDays(30),
+        };
+    }
 
-        // Document locks
-        $totalLocks = DocumentLock::count();
-        $activeLocks = DocumentLock::where('expires_at', '>', now())->count();
-        $lockDuration = DocumentLock::whereNotNull('expires_at')
-            ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, locked_at, expires_at)) as avg_duration')
-            ->first();
-        $avgLockDuration = round($lockDuration->avg_duration ?? 0, 1);
+    private function getDailyActivityData($activities): array
+    {
+        $dailyData = [];
+        $startDate = now()->subDays(30);
+        
+        for ($i = 0; $i < 30; $i++) {
+            $date = $startDate->copy()->addDays($i)->format('Y-m-d');
+            $dailyData[$date] = $activities->filter(function ($activity) use ($date) {
+                return $activity->created_at->format('Y-m-d') === $date;
+            })->count();
+        }
+        
+        return $dailyData;
+    }
 
-        // Collaboration activity
-        $collaborationActivity = RecentActivity::whereIn('activity_type', ['comment_added', 'document_locked', 'document_unlocked'])
-            ->where('created_at', '>', now()->subDays(7))
-            ->count();
+    private function getTopFiles($userId = null, $period = '30d'): array
+    {
+        $startDate = $this->getStartDate($period);
+        
+        $query = RecentActivity::with('file')
+            ->where('created_at', '>=', $startDate)
+            ->whereNotNull('file_id')
+            ->select('file_id', DB::raw('count(*) as activity_count'))
+            ->groupBy('file_id')
+            ->orderBy('activity_count', 'desc')
+            ->limit(10);
+            
+        if ($userId) {
+            $query->where('user_id', $userId);
+        }
+        
+        return $query->get()->map(function ($item) {
+            return [
+                'file_name' => $item->file->name ?? 'Unknown',
+                'activity_count' => $item->activity_count,
+                'file_size' => $item->file->file_size ?? 0,
+            ];
+        })->toArray();
+    }
 
-        // Most collaborative files
-        $mostCollaborative = File::withCount(['comments', 'documentLocks'])
-            ->orderBy('comments_count', 'desc')
-            ->limit(10)
-            ->get()
-            ->map(function ($file) {
+    private function getUserEngagement($userId = null, $period = '30d'): array
+    {
+        $startDate = $this->getStartDate($period);
+        
+        $query = RecentActivity::where('created_at', '>=', $startDate)
+            ->select('user_id', DB::raw('count(*) as activity_count'))
+            ->groupBy('user_id')
+            ->orderBy('activity_count', 'desc')
+            ->limit(10);
+            
+        if ($userId) {
+            $query->where('user_id', $userId);
+        }
+        
+        return $query->get()->map(function ($item) {
+            $user = User::find($item->user_id);
+            return [
+                'user_name' => $user->name ?? 'Unknown',
+                'activity_count' => $item->activity_count,
+            ];
+        })->toArray();
+    }
+
+    private function getLanguageDistribution($ocrResults): array
+    {
+        return $ocrResults->groupBy('language')
+            ->map(function ($group) {
+                return $group->count();
+            })
+            ->toArray();
+    }
+
+    private function getFormatDistribution($conversions): array
+    {
+        return $conversions->groupBy('target_format')
+            ->map(function ($group) {
+                return $group->count();
+            })
+            ->toArray();
+    }
+
+    private function getQualityScores($conversions): array
+    {
+        return [
+            'average' => $conversions->where('status', 'completed')->avg('quality_score'),
+            'high' => $conversions->where('status', 'completed')->where('quality_score', '>=', 0.8)->count(),
+            'medium' => $conversions->where('status', 'completed')->whereBetween('quality_score', [0.6, 0.79])->count(),
+            'low' => $conversions->where('status', 'completed')->where('quality_score', '<', 0.6)->count(),
+        ];
+    }
+
+    private function getOperationDistribution($batchJobs): array
+    {
+        return $batchJobs->groupBy('operation_type')
+            ->map(function ($group) {
+                return $group->count();
+            })
+            ->toArray();
+    }
+
+    private function getExtractionTypeDistribution($extractions): array
+    {
+        return $extractions->groupBy('extraction_type')
+            ->map(function ($group) {
+                return $group->count();
+            })
+            ->toArray();
+    }
+
+    private function getExtractionQualityScores($extractions): array
+    {
+        return [
+            'average' => $extractions->where('status', 'completed')->avg('quality_score'),
+            'high' => $extractions->where('status', 'completed')->where('quality_score', '>=', 0.8)->count(),
+            'medium' => $extractions->where('status', 'completed')->whereBetween('quality_score', [0.6, 0.79])->count(),
+            'low' => $extractions->where('status', 'completed')->where('quality_score', '<', 0.6)->count(),
+        ];
+    }
+
+    private function getFileTypeDistribution($files): array
+    {
+        return $files->groupBy('extension')
+            ->map(function ($group) {
                 return [
-                    'name' => $file->name,
-                    'comments_count' => $file->comments_count,
-                    'locks_count' => $file->document_locks_count,
-                    'total_activity' => $file->comments_count + $file->document_locks_count,
+                    'count' => $group->count(),
+                    'total_size' => $group->sum('file_size'),
                 ];
-            });
-
-        return [
-            'total_comments' => $totalComments,
-            'recent_comments' => $recentComments,
-            'comments_per_file' => $commentsPerFile,
-            'total_locks' => $totalLocks,
-            'active_locks' => $activeLocks,
-            'avg_lock_duration_minutes' => $avgLockDuration,
-            'collaboration_activity' => $collaborationActivity,
-            'most_collaborative' => $mostCollaborative,
-        ];
+            })
+            ->toArray();
     }
 
-    /**
-     * Get workflow analytics
-     */
-    private function getWorkflowAnalytics(): array
+    private function getStorageGrowth($userId = null, $period = '30d'): array
     {
-        // Workflow instances
-        $totalInstances = WorkflowInstance::count();
-        $activeInstances = WorkflowInstance::where('status', 'in_progress')->count();
-        $completedInstances = WorkflowInstance::where('status', 'completed')->count();
-        $rejectedInstances = WorkflowInstance::where('status', 'rejected')->count();
-
-        // Workflow performance
-        $avgCompletionTime = WorkflowInstance::where('status', 'completed')
-            ->whereNotNull('completed_at')
-            ->selectRaw('AVG(TIMESTAMPDIFF(HOUR, created_at, completed_at)) as avg_hours')
-            ->first();
-        $avgHours = round($avgCompletionTime->avg_hours ?? 0, 1);
-
-        // Workflow success rate
-        $successRate = $totalInstances > 0 ? round(($completedInstances / $totalInstances) * 100, 1) : 0;
-
-        // Workflow trends
-        $workflowTrends = $this->getDailyTrends('workflows', 30);
-
-        return [
-            'total_instances' => $totalInstances,
-            'active_instances' => $activeInstances,
-            'completed_instances' => $completedInstances,
-            'rejected_instances' => $rejectedInstances,
-            'success_rate' => $successRate,
-            'avg_completion_hours' => $avgHours,
-            'workflow_trends' => $workflowTrends,
-        ];
+        $growthData = [];
+        $startDate = $this->getStartDate($period);
+        
+        for ($i = 0; $i < 30; $i++) {
+            $date = $startDate->copy()->addDays($i);
+            $nextDate = $date->copy()->addDay();
+            
+            $query = File::whereBetween('created_at', [$date, $nextDate]);
+            if ($userId) {
+                $query->where('uploaded_by', $userId);
+            }
+            
+            $growthData[$date->format('Y-m-d')] = $query->sum('file_size');
+        }
+        
+        return $growthData;
     }
 
-    /**
-     * Get security analytics
-     */
-    private function getSecurityAnalytics(): array
+    private function getLargestFiles($userId = null, $limit = 10): array
     {
-        // Security events
-        $totalSecurityEvents = SecurityAudit::count();
-        $recentSecurityEvents = SecurityAudit::where('created_at', '>', now()->subDays(7))->count();
-        $failedAccessAttempts = SecurityAudit::where('action', 'access_denied')->count();
-
-        // Security events by type
-        $eventsByType = SecurityAudit::selectRaw('action, COUNT(*) as count')
-            ->groupBy('action')
-            ->orderBy('count', 'desc')
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'action' => $this->getSecurityActionName($item->action),
-                    'count' => $item->count,
-                ];
-            });
-
-        // Security trends
-        $securityTrends = $this->getDailyTrends('security', 30);
-
-        return [
-            'total_events' => $totalSecurityEvents,
-            'recent_events' => $recentSecurityEvents,
-            'failed_attempts' => $failedAccessAttempts,
-            'events_by_type' => $eventsByType,
-            'security_trends' => $securityTrends,
-        ];
+        $query = File::orderBy('file_size', 'desc')->limit($limit);
+        
+        if ($userId) {
+            $query->where('uploaded_by', $userId);
+        }
+        
+        return $query->get()->map(function ($file) {
+            return [
+                'name' => $file->name,
+                'size' => $file->file_size,
+                'formatted_size' => $this->formatBytes($file->file_size),
+                'uploaded_at' => $file->created_at->format('M j, Y'),
+            ];
+        })->toArray();
     }
 
-    /**
-     * Get performance analytics
-     */
-    private function getPerformanceAnalytics(): array
+    private function getStorageByUserType($userId = null): array
     {
-        // Storage usage
-        $totalStorage = File::sum('file_size');
-        $avgFileSize = File::avg('file_size');
-        $largestFile = File::orderBy('file_size', 'desc')->first();
-
-        // File processing
-        $processedFiles = File::whereNotNull('indexed_at')->count();
-        $totalFiles = File::count();
-        $processingRate = $totalFiles > 0 ? round(($processedFiles / $totalFiles) * 100, 1) : 0;
-
-        // System performance
-        $recentActivity = RecentActivity::where('created_at', '>', now()->subDays(1))->count();
-        $avgResponseTime = 150; // Mock data - would be calculated from actual metrics
-
-        return [
-            'total_storage_gb' => round($totalStorage / (1024 * 1024 * 1024), 2),
-            'avg_file_size_mb' => round($avgFileSize / (1024 * 1024), 2),
-            'largest_file' => $largestFile ? [
-                'name' => $largestFile->name,
-                'size' => $largestFile->human_size,
-            ] : null,
-            'processing_rate' => $processingRate,
-            'recent_activity' => $recentActivity,
-            'avg_response_time_ms' => $avgResponseTime,
-        ];
+        $query = File::select('user_type', DB::raw('sum(file_size) as total_size'), DB::raw('count(*) as file_count'))
+            ->groupBy('user_type');
+            
+        if ($userId) {
+            $query->where('uploaded_by', $userId);
+        }
+        
+        return $query->get()->map(function ($item) {
+            return [
+                'user_type' => $item->user_type,
+                'total_size' => $item->total_size,
+                'formatted_size' => $this->formatBytes($item->total_size),
+                'file_count' => $item->file_count,
+            ];
+        })->toArray();
     }
 
-    /**
-     * Get trends data
-     */
-    private function getTrends(): array
+    private function getActivityByType($activities): array
     {
-        return [
-            'files' => $this->getDailyTrends('files', 30),
-            'users' => $this->getDailyTrends('users', 30),
-            'searches' => $this->getDailyTrends('search', 30),
-            'collaboration' => $this->getDailyTrends('collaboration', 30),
-            'workflows' => $this->getDailyTrends('workflows', 30),
-            'security' => $this->getDailyTrends('security', 30),
-        ];
+        return $activities->groupBy('activity_type')
+            ->map(function ($group) {
+                return $group->count();
+            })
+            ->toArray();
     }
 
-    /**
-     * Get top performers
-     */
-    private function getTopPerformers(): array
+    private function getPeakActivityHours($activities): array
     {
-        // Top file uploaders
-        $topUploaders = User::withCount('files')
-            ->orderBy('files_count', 'desc')
-            ->limit(5)
-            ->get()
-            ->map(function ($user) {
-                return [
-                    'name' => $user->name,
-                    'files_count' => $user->files_count,
-                    'type' => 'Uploader',
-                ];
-            });
-
-        // Top collaborators
-        $topCollaborators = User::withCount(['activities as collaboration_count' => function ($query) {
-                $query->whereIn('activity_type', ['comment_added', 'document_locked']);
-            }])
-            ->orderBy('collaboration_count', 'desc')
-            ->limit(5)
-            ->get()
-            ->map(function ($user) {
-                return [
-                    'name' => $user->name,
-                    'count' => $user->collaboration_count,
-                    'type' => 'Collaborator',
-                ];
-            });
-
-        // Most active searchers
-        $topSearchers = User::withCount(['activities as search_count' => function ($query) {
-                $query->where('activity_type', 'search');
-            }])
-            ->orderBy('search_count', 'desc')
-            ->limit(5)
-            ->get()
-            ->map(function ($user) {
-                return [
-                    'name' => $user->name,
-                    'count' => $user->search_count,
-                    'type' => 'Searcher',
-                ];
-            });
-
-        return [
-            'uploaders' => $topUploaders,
-            'collaborators' => $topCollaborators,
-            'searchers' => $topSearchers,
-        ];
+        $hourlyData = array_fill(0, 24, 0);
+        
+        foreach ($activities as $activity) {
+            $hour = (int) $activity->created_at->format('G');
+            $hourlyData[$hour]++;
+        }
+        
+        return $hourlyData;
     }
 
-    /**
-     * Get daily trends for a specific metric
-     */
-    private function getDailyTrends(string $metric, int $days): array
+    private function getActivityTrends($activities): array
     {
         $trends = [];
-        $startDate = now()->subDays($days);
-
-        switch ($metric) {
-            case 'files':
-                $data = File::selectRaw('DATE(created_at) as date, COUNT(*) as count')
-                    ->where('created_at', '>=', $startDate)
-                    ->groupBy('date')
-                    ->orderBy('date')
-                    ->get();
-                break;
-            case 'users':
-                $data = User::selectRaw('DATE(created_at) as date, COUNT(*) as count')
-                    ->where('created_at', '>=', $startDate)
-                    ->groupBy('date')
-                    ->orderBy('date')
-                    ->get();
-                break;
-            case 'search':
-                $data = RecentActivity::selectRaw('DATE(created_at) as date, COUNT(*) as count')
-                    ->where('activity_type', 'search')
-                    ->where('created_at', '>=', $startDate)
-                    ->groupBy('date')
-                    ->orderBy('date')
-                    ->get();
-                break;
-            case 'collaboration':
-                $data = RecentActivity::selectRaw('DATE(created_at) as date, COUNT(*) as count')
-                    ->whereIn('activity_type', ['comment_added', 'document_locked', 'document_unlocked'])
-                    ->where('created_at', '>=', $startDate)
-                    ->groupBy('date')
-                    ->orderBy('date')
-                    ->get();
-                break;
-            case 'workflows':
-                $data = WorkflowInstance::selectRaw('DATE(created_at) as date, COUNT(*) as count')
-                    ->where('created_at', '>=', $startDate)
-                    ->groupBy('date')
-                    ->orderBy('date')
-                    ->get();
-                break;
-            case 'security':
-                $data = SecurityAudit::selectRaw('DATE(created_at) as date, COUNT(*) as count')
-                    ->where('created_at', '>=', $startDate)
-                    ->groupBy('date')
-                    ->orderBy('date')
-                    ->get();
-                break;
-            default:
-                $data = collect();
-        }
-
-        // Fill in missing dates with zero counts
-        for ($i = 0; $i < $days; $i++) {
+        $startDate = now()->subDays(7);
+        
+        for ($i = 0; $i < 7; $i++) {
             $date = $startDate->copy()->addDays($i)->format('Y-m-d');
-            $count = $data->where('date', $date)->first()->count ?? 0;
-            $trends[] = [
-                'date' => $date,
-                'count' => $count,
-            ];
+            $trends[$date] = $activities->filter(function ($activity) use ($date) {
+                return $activity->created_at->format('Y-m-d') === $date;
+            })->count();
         }
-
+        
         return $trends;
     }
 
-    /**
-     * Calculate growth percentage
-     */
-    private function calculateGrowth(string $metric, int $days): float
+    private function getUserProductivity($userId = null, $period = '30d'): array
     {
-        $currentPeriod = $this->getCountForPeriod($metric, $days);
-        $previousPeriod = $this->getCountForPeriod($metric, $days * 2, $days);
+        $startDate = $this->getStartDate($period);
         
-        if ($previousPeriod == 0) {
-            return $currentPeriod > 0 ? 100 : 0;
+        $query = RecentActivity::where('created_at', '>=', $startDate)
+            ->select('user_id', 'activity_type', DB::raw('count(*) as count'))
+            ->groupBy('user_id', 'activity_type');
+            
+        if ($userId) {
+            $query->where('user_id', $userId);
         }
         
-        return round((($currentPeriod - $previousPeriod) / $previousPeriod) * 100, 1);
-    }
-
-    /**
-     * Calculate storage growth
-     */
-    private function calculateStorageGrowth(int $days): float
-    {
-        $currentStorage = File::where('created_at', '>', now()->subDays($days))->sum('file_size');
-        $previousStorage = File::whereBetween('created_at', [
-            now()->subDays($days * 2),
-            now()->subDays($days)
-        ])->sum('file_size');
+        $activities = $query->get();
         
-        if ($previousStorage == 0) {
-            return $currentStorage > 0 ? 100 : 0;
-        }
-        
-        return round((($currentStorage - $previousStorage) / $previousStorage) * 100, 1);
-    }
-
-    /**
-     * Get count for a specific period
-     */
-    private function getCountForPeriod(string $metric, int $days, int $offset = 0): int
-    {
-        $startDate = now()->subDays($days + $offset);
-        $endDate = now()->subDays($offset);
-
-        switch ($metric) {
-            case 'files':
-                return File::whereBetween('created_at', [$startDate, $endDate])->count();
-            case 'users':
-                return User::whereBetween('created_at', [$startDate, $endDate])->count();
-            default:
-                return 0;
-        }
-    }
-
-    /**
-     * Get file type name
-     */
-    private function getFileTypeName(string $mimeType): string
-    {
-        $types = [
-            'application/pdf' => 'PDF',
-            'text/plain' => 'Text',
-            'application/msword' => 'Word',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'Word',
-            'application/vnd.ms-excel' => 'Excel',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'Excel',
-            'image/jpeg' => 'JPEG',
-            'image/png' => 'PNG',
-            'image/gif' => 'GIF',
+        return [
+            'uploads_per_user' => $activities->where('activity_type', 'upload')->avg('count'),
+            'downloads_per_user' => $activities->where('activity_type', 'download')->avg('count'),
+            'views_per_user' => $activities->where('activity_type', 'view')->avg('count'),
         ];
-
-        return $types[$mimeType] ?? 'Other';
     }
 
-    /**
-     * Get security action name
-     */
-    private function getSecurityActionName(string $action): string
+    private function getCollaborationMetrics($userId = null, $period = '30d'): array
     {
-        $actions = [
-            'file_encrypt' => 'File Encryption',
-            'file_decrypt' => 'File Decryption',
-            'file_watermark' => 'File Watermarking',
-            'access_denied' => 'Access Denied',
-            'login_success' => 'Login Success',
-            'login_failed' => 'Login Failed',
+        $startDate = $this->getStartDate($period);
+        
+        $query = RecentActivity::where('created_at', '>=', $startDate)
+            ->whereIn('activity_type', ['comment_add', 'annotation_add', 'share']);
+            
+        if ($userId) {
+            $query->where('user_id', $userId);
+        }
+        
+        $activities = $query->get();
+        
+        return [
+            'total_collaborations' => $activities->count(),
+            'comments' => $activities->where('activity_type', 'comment_add')->count(),
+            'annotations' => $activities->where('activity_type', 'annotation_add')->count(),
+            'shares' => $activities->where('activity_type', 'share')->count(),
         ];
+    }
 
-        return $actions[$action] ?? ucfirst(str_replace('_', ' ', $action));
+    private function getActivityDescription($activity): string
+    {
+        return match ($activity->activity_type) {
+            'upload' => 'Uploaded a file',
+            'download' => 'Downloaded a file',
+            'view' => 'Viewed a file',
+            'share' => 'Shared a file',
+            'comment_add' => 'Added a comment',
+            'annotation_add' => 'Added an annotation',
+            default => 'Performed an action',
+        };
+    }
+
+    private function formatBytes($bytes): string
+    {
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        
+        for ($i = 0; $bytes > 1024 && $i < count($units) - 1; $i++) {
+            $bytes /= 1024;
+        }
+        
+        return round($bytes, 2) . ' ' . $units[$i];
+    }
+
+    private function getStorageAvailable(): string
+    {
+        $totalSpace = disk_total_space(storage_path());
+        $freeSpace = disk_free_space(storage_path());
+        $usedSpace = $totalSpace - $freeSpace;
+        
+        return $this->formatBytes($freeSpace) . ' / ' . $this->formatBytes($totalSpace);
     }
 
     /**
@@ -603,6 +591,6 @@ class AnalyticsService
      */
     public function clearCache(): void
     {
-        Cache::forget('analytics_dashboard_' . date('Y-m-d'));
+        Cache::flush();
     }
 } 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\AnalyticsService;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 
 class AnalyticsController extends Controller
@@ -21,229 +22,179 @@ class AnalyticsController extends Controller
     public function dashboard()
     {
         $user = Auth::user();
-        
-        if (!$user->is_admin) {
-            abort(403, 'Access denied');
-        }
-        
-        $analytics = $this->analyticsService->getDashboardAnalytics();
+        $analytics = $this->analyticsService->getDashboardAnalytics($user->id);
         
         return view('analytics.dashboard', compact('analytics'));
     }
 
     /**
-     * Get analytics data as JSON
+     * Get document usage analytics
      */
-    public function getData(Request $request)
+    public function documentUsage(Request $request): JsonResponse
     {
         $user = Auth::user();
+        $period = $request->get('period', '30d');
         
-        if (!$user->is_admin) {
-            return response()->json(['error' => 'Access denied'], 403);
-        }
+        $analytics = $this->analyticsService->getDocumentUsageAnalytics($user->id, $period);
         
-        $section = $request->get('section', 'overview');
-        $analytics = $this->analyticsService->getDashboardAnalytics();
+        return response()->json([
+            'success' => true,
+            'data' => $analytics,
+        ]);
+    }
+
+    /**
+     * Get processing analytics
+     */
+    public function processing(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+        $period = $request->get('period', '30d');
+        
+        $analytics = $this->analyticsService->getProcessingAnalytics($user->id, $period);
+        
+        return response()->json([
+            'success' => true,
+            'data' => $analytics,
+        ]);
+    }
+
+    /**
+     * Get storage analytics
+     */
+    public function storage(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+        $period = $request->get('period', '30d');
+        
+        $analytics = $this->analyticsService->getStorageAnalytics($user->id, $period);
+        
+        return response()->json([
+            'success' => true,
+            'data' => $analytics,
+        ]);
+    }
+
+    /**
+     * Get user activity analytics
+     */
+    public function userActivity(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+        $period = $request->get('period', '30d');
+        
+        $analytics = $this->analyticsService->getUserActivityAnalytics($user->id, $period);
+        
+        return response()->json([
+            'success' => true,
+            'data' => $analytics,
+        ]);
+    }
+
+    /**
+     * Get comprehensive analytics data
+     */
+    public function getData(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+        $section = $request->get('section', 'dashboard');
+        $period = $request->get('period', '30d');
         
         $data = match ($section) {
-            'overview' => $analytics['overview'],
-            'files' => $analytics['file_analytics'],
-            'users' => $analytics['user_analytics'],
-            'search' => $analytics['search_analytics'],
-            'collaboration' => $analytics['collaboration_analytics'],
-            'workflows' => $analytics['workflow_analytics'],
-            'security' => $analytics['security_analytics'],
-            'performance' => $analytics['performance_analytics'],
-            'trends' => $analytics['trends'],
-            'top_performers' => $analytics['top_performers'],
-            default => $analytics,
+            'dashboard' => $this->analyticsService->getDashboardAnalytics($user->id),
+            'document_usage' => $this->analyticsService->getDocumentUsageAnalytics($user->id, $period),
+            'processing' => $this->analyticsService->getProcessingAnalytics($user->id, $period),
+            'storage' => $this->analyticsService->getStorageAnalytics($user->id, $period),
+            'user_activity' => $this->analyticsService->getUserActivityAnalytics($user->id, $period),
+            default => $this->analyticsService->getDashboardAnalytics($user->id),
         };
         
         return response()->json([
             'success' => true,
             'data' => $data,
             'section' => $section,
+            'period' => $period,
         ]);
     }
 
     /**
-     * Show file analytics
+     * Show document usage analytics page
      */
-    public function fileAnalytics()
+    public function documentUsagePage()
     {
         $user = Auth::user();
+        $analytics = $this->analyticsService->getDocumentUsageAnalytics($user->id, '30d');
         
-        if (!$user->is_admin) {
-            abort(403, 'Access denied');
-        }
-        
-        $analytics = $this->analyticsService->getDashboardAnalytics();
-        $fileAnalytics = $analytics['file_analytics'];
-        
-        return view('analytics.files', compact('fileAnalytics'));
+        return view('analytics.document-usage', compact('analytics'));
     }
 
     /**
-     * Show user analytics
+     * Show processing analytics page
      */
-    public function userAnalytics()
+    public function processingPage()
     {
         $user = Auth::user();
+        $analytics = $this->analyticsService->getProcessingAnalytics($user->id, '30d');
         
-        if (!$user->is_admin) {
-            abort(403, 'Access denied');
-        }
-        
-        $analytics = $this->analyticsService->getDashboardAnalytics();
-        $userAnalytics = $analytics['user_analytics'];
-        
-        return view('analytics.users', compact('userAnalytics'));
+        return view('analytics.processing', compact('analytics'));
     }
 
     /**
-     * Show search analytics
+     * Show storage analytics page
      */
-    public function searchAnalytics()
+    public function storagePage()
     {
         $user = Auth::user();
+        $analytics = $this->analyticsService->getStorageAnalytics($user->id, '30d');
         
-        if (!$user->is_admin) {
-            abort(403, 'Access denied');
-        }
-        
-        $analytics = $this->analyticsService->getDashboardAnalytics();
-        $searchAnalytics = $analytics['search_analytics'];
-        
-        return view('analytics.search', compact('searchAnalytics'));
+        return view('analytics.storage', compact('analytics'));
     }
 
     /**
-     * Show collaboration analytics
+     * Show user activity analytics page
      */
-    public function collaborationAnalytics()
+    public function userActivityPage()
     {
         $user = Auth::user();
+        $analytics = $this->analyticsService->getUserActivityAnalytics($user->id, '30d');
         
-        if (!$user->is_admin) {
-            abort(403, 'Access denied');
-        }
-        
-        $analytics = $this->analyticsService->getDashboardAnalytics();
-        $collaborationAnalytics = $analytics['collaboration_analytics'];
-        
-        return view('analytics.collaboration', compact('collaborationAnalytics'));
-    }
-
-    /**
-     * Show workflow analytics
-     */
-    public function workflowAnalytics()
-    {
-        $user = Auth::user();
-        
-        if (!$user->is_admin) {
-            abort(403, 'Access denied');
-        }
-        
-        $analytics = $this->analyticsService->getDashboardAnalytics();
-        $workflowAnalytics = $analytics['workflow_analytics'];
-        
-        return view('analytics.workflows', compact('workflowAnalytics'));
-    }
-
-    /**
-     * Show security analytics
-     */
-    public function securityAnalytics()
-    {
-        $user = Auth::user();
-        
-        if (!$user->is_admin) {
-            abort(403, 'Access denied');
-        }
-        
-        $analytics = $this->analyticsService->getDashboardAnalytics();
-        $securityAnalytics = $analytics['security_analytics'];
-        
-        return view('analytics.security', compact('securityAnalytics'));
-    }
-
-    /**
-     * Show performance analytics
-     */
-    public function performanceAnalytics()
-    {
-        $user = Auth::user();
-        
-        if (!$user->is_admin) {
-            abort(403, 'Access denied');
-        }
-        
-        $analytics = $this->analyticsService->getDashboardAnalytics();
-        $performanceAnalytics = $analytics['performance_analytics'];
-        
-        return view('analytics.performance', compact('performanceAnalytics'));
-    }
-
-    /**
-     * Show trends
-     */
-    public function trends()
-    {
-        $user = Auth::user();
-        
-        if (!$user->is_admin) {
-            abort(403, 'Access denied');
-        }
-        
-        $analytics = $this->analyticsService->getDashboardAnalytics();
-        $trends = $analytics['trends'];
-        
-        return view('analytics.trends', compact('trends'));
-    }
-
-    /**
-     * Show top performers
-     */
-    public function topPerformers()
-    {
-        $user = Auth::user();
-        
-        if (!$user->is_admin) {
-            abort(403, 'Access denied');
-        }
-        
-        $analytics = $this->analyticsService->getDashboardAnalytics();
-        $topPerformers = $analytics['top_performers'];
-        
-        return view('analytics.top-performers', compact('topPerformers'));
+        return view('analytics.user-activity', compact('analytics'));
     }
 
     /**
      * Generate analytics report
      */
-    public function generateReport(Request $request)
+    public function generateReport(Request $request): JsonResponse
     {
         $user = Auth::user();
-        
-        if (!$user->is_admin) {
-            return response()->json(['error' => 'Access denied'], 403);
-        }
-        
         $format = $request->get('format', 'json');
-        $sections = $request->get('sections', ['overview']);
-        
-        $analytics = $this->analyticsService->getDashboardAnalytics();
+        $sections = $request->get('sections', ['dashboard']);
+        $period = $request->get('period', '30d');
         
         $report = [
             'generated_at' => now()->format('Y-m-d H:i:s'),
             'generated_by' => $user->name,
+            'period' => $period,
             'sections' => [],
         ];
         
         foreach ($sections as $section) {
-            if (isset($analytics[$section])) {
-                $report['sections'][$section] = $analytics[$section];
+            switch ($section) {
+                case 'document_usage':
+                    $report['sections'][$section] = $this->analyticsService->getDocumentUsageAnalytics($user->id, $period);
+                    break;
+                case 'processing':
+                    $report['sections'][$section] = $this->analyticsService->getProcessingAnalytics($user->id, $period);
+                    break;
+                case 'storage':
+                    $report['sections'][$section] = $this->analyticsService->getStorageAnalytics($user->id, $period);
+                    break;
+                case 'user_activity':
+                    $report['sections'][$section] = $this->analyticsService->getUserActivityAnalytics($user->id, $period);
+                    break;
+                case 'dashboard':
+                    $report['sections'][$section] = $this->analyticsService->getDashboardAnalytics($user->id);
+                    break;
             }
         }
         
@@ -265,24 +216,21 @@ class AnalyticsController extends Controller
     /**
      * Export analytics data
      */
-    public function export(Request $request)
+    public function export(Request $request): JsonResponse
     {
         $user = Auth::user();
-        
-        if (!$user->is_admin) {
-            return response()->json(['error' => 'Access denied'], 403);
-        }
-        
         $format = $request->get('format', 'csv');
-        $section = $request->get('section', 'overview');
+        $section = $request->get('section', 'dashboard');
+        $period = $request->get('period', '30d');
         
-        $analytics = $this->analyticsService->getDashboardAnalytics();
-        
-        if (!isset($analytics[$section])) {
-            return response()->json(['error' => 'Invalid section'], 400);
-        }
-        
-        $data = $analytics[$section];
+        $data = match ($section) {
+            'document_usage' => $this->analyticsService->getDocumentUsageAnalytics($user->id, $period),
+            'processing' => $this->analyticsService->getProcessingAnalytics($user->id, $period),
+            'storage' => $this->analyticsService->getStorageAnalytics($user->id, $period),
+            'user_activity' => $this->analyticsService->getUserActivityAnalytics($user->id, $period),
+            'dashboard' => $this->analyticsService->getDashboardAnalytics($user->id),
+            default => $this->analyticsService->getDashboardAnalytics($user->id),
+        };
         
         if ($format === 'csv') {
             // In a real implementation, you would generate a CSV file
@@ -302,14 +250,9 @@ class AnalyticsController extends Controller
     /**
      * Clear analytics cache
      */
-    public function clearCache()
+    public function clearCache(): JsonResponse
     {
         $user = Auth::user();
-        
-        if (!$user->is_admin) {
-            return response()->json(['error' => 'Access denied'], 403);
-        }
-        
         $this->analyticsService->clearCache();
         
         return response()->json([
@@ -321,31 +264,79 @@ class AnalyticsController extends Controller
     /**
      * Get real-time analytics
      */
-    public function realTime()
+    public function realTime(): JsonResponse
     {
         $user = Auth::user();
         
-        if (!$user->is_admin) {
-            return response()->json(['error' => 'Access denied'], 403);
-        }
-        
         // Get real-time data (last 24 hours)
-        $recentFiles = \App\Models\File::where('created_at', '>', now()->subDay())->count();
-        $recentUsers = \App\Models\User::where('created_at', '>', now()->subDay())->count();
-        $recentSearches = \App\Models\RecentActivity::where('action', 'search')
+        $recentFiles = \App\Models\File::where('uploaded_by', $user->id)
             ->where('created_at', '>', now()->subDay())
             ->count();
-        $activeUsers = \App\Models\User::where('last_login_at', '>', now()->subHours(1))->count();
+        
+        $recentActivities = \App\Models\RecentActivity::where('user_id', $user->id)
+            ->where('created_at', '>', now()->subDay())
+            ->count();
+        
+        $batchJobs = \App\Models\BatchJob::where('user_id', $user->id)
+            ->where('created_at', '>', now()->subDay())
+            ->count();
+        
+        $storageUsed = \App\Models\File::where('uploaded_by', $user->id)
+            ->where('created_at', '>', now()->subDay())
+            ->sum('file_size');
         
         return response()->json([
             'success' => true,
             'data' => [
                 'recent_files' => $recentFiles,
-                'recent_users' => $recentUsers,
-                'recent_searches' => $recentSearches,
-                'active_users' => $activeUsers,
+                'recent_activities' => $recentActivities,
+                'batch_jobs' => $batchJobs,
+                'storage_used' => $storageUsed,
                 'timestamp' => now()->format('Y-m-d H:i:s'),
             ],
+        ]);
+    }
+
+    /**
+     * Get analytics summary for dashboard widgets
+     */
+    public function summary(): JsonResponse
+    {
+        $user = Auth::user();
+        $analytics = $this->analyticsService->getDashboardAnalytics($user->id);
+        
+        $summary = [
+            'quick_stats' => $analytics['quick_stats'],
+            'system_health' => $analytics['system_health'],
+            'recent_activity' => array_slice($analytics['recent_activity'], 0, 5),
+        ];
+        
+        return response()->json([
+            'success' => true,
+            'data' => $summary,
+        ]);
+    }
+
+    /**
+     * Get analytics trends
+     */
+    public function trends(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+        $period = $request->get('period', '30d');
+        
+        $documentUsage = $this->analyticsService->getDocumentUsageAnalytics($user->id, $period);
+        $storage = $this->analyticsService->getStorageAnalytics($user->id, $period);
+        
+        $trends = [
+            'daily_activity' => $documentUsage['daily_activity'],
+            'storage_growth' => $storage['storage_growth'],
+            'activity_trends' => $this->analyticsService->getUserActivityAnalytics($user->id, $period)['activity_trends'],
+        ];
+        
+        return response()->json([
+            'success' => true,
+            'data' => $trends,
         ]);
     }
 } 

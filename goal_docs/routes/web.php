@@ -280,6 +280,24 @@ Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class])->
         Route::get('/batch-processing/operations', [\App\Http\Controllers\BatchProcessingController::class, 'getSupportedOperations'])->name('batch-processing.operations');
         Route::get('/batch-processing/files', [\App\Http\Controllers\BatchProcessingController::class, 'getUserFiles'])->name('batch-processing.files');
         
+        // Analytics routes
+        Route::get('/analytics', [\App\Http\Controllers\AnalyticsController::class, 'dashboard'])->name('analytics.dashboard');
+        Route::get('/analytics/document-usage', [\App\Http\Controllers\AnalyticsController::class, 'documentUsagePage'])->name('analytics.document-usage');
+        Route::get('/analytics/processing', [\App\Http\Controllers\AnalyticsController::class, 'processingPage'])->name('analytics.processing');
+        Route::get('/analytics/storage', [\App\Http\Controllers\AnalyticsController::class, 'storagePage'])->name('analytics.storage');
+        Route::get('/analytics/user-activity', [\App\Http\Controllers\AnalyticsController::class, 'userActivityPage'])->name('analytics.user-activity');
+        Route::get('/analytics/api/document-usage', [\App\Http\Controllers\AnalyticsController::class, 'documentUsage'])->name('analytics.api.document-usage');
+        Route::get('/analytics/api/processing', [\App\Http\Controllers\AnalyticsController::class, 'processing'])->name('analytics.api.processing');
+        Route::get('/analytics/api/storage', [\App\Http\Controllers\AnalyticsController::class, 'storage'])->name('analytics.api.storage');
+        Route::get('/analytics/api/user-activity', [\App\Http\Controllers\AnalyticsController::class, 'userActivity'])->name('analytics.api.user-activity');
+        Route::get('/analytics/api/data', [\App\Http\Controllers\AnalyticsController::class, 'getData'])->name('analytics.api.data');
+        Route::get('/analytics/api/summary', [\App\Http\Controllers\AnalyticsController::class, 'summary'])->name('analytics.api.summary');
+        Route::get('/analytics/api/trends', [\App\Http\Controllers\AnalyticsController::class, 'trends'])->name('analytics.api.trends');
+        Route::get('/analytics/api/realtime', [\App\Http\Controllers\AnalyticsController::class, 'realTime'])->name('analytics.api.realtime');
+        Route::post('/analytics/api/report', [\App\Http\Controllers\AnalyticsController::class, 'generateReport'])->name('analytics.api.report');
+        Route::post('/analytics/api/export', [\App\Http\Controllers\AnalyticsController::class, 'export'])->name('analytics.api.export');
+        Route::post('/analytics/api/clear-cache', [\App\Http\Controllers\AnalyticsController::class, 'clearCache'])->name('analytics.api.clear-cache');
+        
         Route::post('/permissions/assign', [\App\Http\Controllers\FileController::class, 'assignPermissions'])->name('permissions.assign');
         Route::delete('/permissions/remove', [\App\Http\Controllers\FileController::class, 'removePermission'])->name('permissions.remove');
     });
