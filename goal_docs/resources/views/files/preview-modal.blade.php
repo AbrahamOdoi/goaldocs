@@ -1258,12 +1258,19 @@ function updateImageTransform() {
          * Join collaboration session
          */
         function joinCollaborationSession(sessionId = null) {
-            if (!currentFileId) return;
+            if (!currentFileId) {
+                console.log('❌ No current file ID available');
+                return;
+            }
+            
+            console.log('🚀 Attempting to join collaboration session for file:', currentFileId);
             
             const data = {
                 session_name: 'Document Review Session',
                 connection_id: generateConnectionId()
             };
+            
+            console.log('📤 Sending join request with data:', data);
             
             fetch(`/files/${currentFileId}/collaboration/join`, {
                 method: 'POST',
@@ -1273,12 +1280,18 @@ function updateImageTransform() {
                 },
                 body: JSON.stringify(data)
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('📥 Response status:', response.status);
+                return response.json();
+            })
             .then(data => {
+                console.log('📥 Response data:', data);
                 if (data.success) {
                     currentSession = data.session;
                     currentPresence = data.presence;
                     isCollaborationMode = true;
+                    
+                    console.log('✅ Successfully joined session:', currentSession);
                     
                     // Update UI
                     document.getElementById('toggleCollaboration').classList.add('btn-primary');
@@ -1289,10 +1302,13 @@ function updateImageTransform() {
                     
                     // Show success notification
                     showNotification('Joined collaboration session!', 'success');
+                } else {
+                    console.error('❌ Failed to join session:', data.error);
+                    showNotification('Failed to join collaboration session: ' + data.error, 'error');
                 }
             })
             .catch(error => {
-                console.error('Failed to join collaboration session:', error);
+                console.error('❌ Network error joining collaboration session:', error);
                 showNotification('Failed to join collaboration session', 'error');
             });
         }
