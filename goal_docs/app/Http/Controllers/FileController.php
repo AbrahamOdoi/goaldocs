@@ -295,7 +295,7 @@ class FileController extends Controller
                     'extension' => $extension,
                     'folder_id' => $request->folder_id,
                     'user_type' => $user->type,
-                    'type_name' => $user->type_name,
+                    'user_type_name' => $user->type_name,
                     'uploaded_by' => $user->id,
                 ]);
 
