@@ -49,6 +49,12 @@ class CollaborationController extends Controller
     {
         $user = Auth::user();
         
+        // Auto-grant basic permissions if user owns the file or has no permissions
+        if ($file->uploaded_by === $user->id || !$this->permissionService->userHasPermission($user, $file, 'view')) {
+            $permissions = ['view' => true, 'comment' => true, 'download' => true];
+            $this->permissionService->assignPermission($file, $user, $permissions, $user, 'Auto-granted for collaboration');
+        }
+        
         // Check permissions
         if (!$this->permissionService->userHasPermission($user, $file, 'comment')) {
             return response()->json(['error' => 'Access denied'], 403);
@@ -352,6 +358,12 @@ class CollaborationController extends Controller
     public function showCollaboration(File $file)
     {
         $user = Auth::user();
+        
+        // Auto-grant basic permissions if user owns the file or has no permissions
+        if ($file->uploaded_by === $user->id || !$this->permissionService->userHasPermission($user, $file, 'view')) {
+            $permissions = ['view' => true, 'comment' => true, 'download' => true];
+            $this->permissionService->assignPermission($file, $user, $permissions, $user, 'Auto-granted for collaboration');
+        }
         
         // Check permissions
         if (!$this->permissionService->userHasPermission($user, $file, 'view')) {
