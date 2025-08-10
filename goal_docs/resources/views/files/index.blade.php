@@ -62,6 +62,16 @@
         console.log('Page loaded at:', new Date().toISOString());
         console.log('Folders count:', {{ $folders->count() }});
         console.log('Files count:', {{ $files->count() }});
+        
+        // Function to clear service worker cache
+        function clearServiceWorkerCache() {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.ready.then((registration) => {
+                    registration.active.postMessage({ type: 'CLEAR_CACHE' });
+                    console.log('Service Worker: Cache clear message sent');
+                });
+            }
+        }
     </script>
 </head>
 
@@ -1015,7 +1025,8 @@ function uploadFiles(files) {
         hideLoading();
         if (data.success) {
             showAlert('success', data.message);
-            // Force a hard refresh to ensure fresh data
+            // Clear service worker cache and force refresh
+            clearServiceWorkerCache();
             window.location.href = window.location.href + '?t=' + Date.now();
         } else {
             showAlert('error', data.error || 'Upload failed');
@@ -1055,9 +1066,10 @@ function uploadFilesFromModal() {
         hideLoading();
         if (data.success) {
             showAlert('success', data.message);
-            // Close modal and force a hard refresh to ensure fresh data
+            // Close modal, clear cache, and force refresh
             const modal = bootstrap.Modal.getInstance(document.getElementById('uploadModal'));
             modal.hide();
+            clearServiceWorkerCache();
             window.location.href = window.location.href + '?t=' + Date.now();
         } else {
             showAlert('error', data.error || 'Upload failed');
@@ -1125,7 +1137,8 @@ function createFolder() {
     .then(data => {
         if (data.success) {
             showAlert('success', data.message);
-            // Force a hard refresh to ensure fresh data
+            // Clear service worker cache and force refresh
+            clearServiceWorkerCache();
             window.location.href = window.location.href + '?t=' + Date.now();
         } else {
             showAlert('error', data.error);

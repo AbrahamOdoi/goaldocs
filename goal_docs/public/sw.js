@@ -1,11 +1,10 @@
-const CACHE_NAME = 'goaldocs-v1.0.3';
-const STATIC_CACHE_NAME = 'goaldocs-static-v1.0.3';
-const DYNAMIC_CACHE_NAME = 'goaldocs-dynamic-v1.0.3';
+const CACHE_NAME = 'goaldocs-v1.0.4';
+const STATIC_CACHE_NAME = 'goaldocs-static-v1.0.4';
+const DYNAMIC_CACHE_NAME = 'goaldocs-dynamic-v1.0.4';
 
 // Static assets to cache
 const STATIC_ASSETS = [
   '/',
-  '/files',
   '/search',
   '/manifest.json',
   '/assets/vendor/css/rtl/core.css',
@@ -69,6 +68,23 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// Message event - handle cache clearing requests
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'CLEAR_CACHE') {
+    console.log('Service Worker: Clearing cache as requested');
+    event.waitUntil(
+      caches.keys().then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => {
+            console.log('Service Worker: Deleting cache:', cacheName);
+            return caches.delete(cacheName);
+          })
+        );
+      })
+    );
+  }
+});
+
 // Fetch event - serve from cache or network
 self.addEventListener('fetch', (event) => {
   const { request } = event;
@@ -87,6 +103,24 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(request)
       .then((cachedResponse) => {
+        // Special handling for files page - always fetch fresh
+        if (url.pathname === '/files') {
+          console.log('Service Worker: Files page - fetching fresh content');
+          return fetch(request)
+            .then((response) => {
+              // Don't cache the files page
+              return response;
+            })
+            .catch(() => {
+              // Fallback to cached version if network fails
+              if (cachedResponse) {
+                console.log('Service Worker: Files page - serving from cache as fallback');
+                return cachedResponse;
+              }
+              return new Response('Network error', { status: 503 });
+            });
+        }
+
         // Return cached version if available
         if (cachedResponse) {
           console.log('Service Worker: Serving from cache:', request.url);
