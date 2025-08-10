@@ -132,12 +132,18 @@
                       <div data-i18n="Data Protection">Data Protection</div>
                     </a>
                   </li>
-                  <li class="menu-item">
-                    <a href="{{ route('security-monitoring.dashboard') }}" class="menu-link">
-                      <i class="menu-icon tf-icons ti ti-eye"></i>
-                      <div data-i18n="Security Monitoring">Security Monitoring</div>
-                    </a>
-                  </li>
+                                     <li class="menu-item">
+                     <a href="{{ route('security-monitoring.dashboard') }}" class="menu-link">
+                       <i class="menu-icon tf-icons ti ti-eye"></i>
+                       <div data-i18n="Security Monitoring">Security Monitoring</div>
+                     </a>
+                   </li>
+                   <li class="menu-item">
+                     <a href="{{ route('system-integration.dashboard') }}" class="menu-link">
+                       <i class="menu-icon tf-icons ti ti-plug-connected"></i>
+                       <div data-i18n="System Integration">System Integration</div>
+                     </a>
+                   </li>
     
     <li class="menu-item">
       <a href="javascript:void(0);" class="menu-link" onclick="showMyShares()">

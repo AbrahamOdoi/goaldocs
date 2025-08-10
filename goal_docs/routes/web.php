@@ -513,3 +513,18 @@ Route::prefix('security-monitoring')->name('security-monitoring.')->group(functi
         Route::get('/summary', [\App\Http\Controllers\SecurityMonitoringController::class, 'getSummary'])->name('summary');
     });
 });
+
+// System Integration Routes
+Route::prefix('system-integration')->name('system-integration.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\SystemIntegrationController::class, 'dashboard'])->name('dashboard');
+    
+    // API routes
+    Route::prefix('api')->name('api.')->group(function () {
+        Route::get('/system-health', [\App\Http\Controllers\SystemIntegrationController::class, 'getSystemHealth'])->name('system-health');
+        Route::post('/integration-check', [\App\Http\Controllers\SystemIntegrationController::class, 'performIntegrationCheck'])->name('integration-check');
+        Route::post('/cross-module-test', [\App\Http\Controllers\SystemIntegrationController::class, 'testCrossModuleFunctionality'])->name('cross-module-test');
+        Route::post('/data-consistency', [\App\Http\Controllers\SystemIntegrationController::class, 'checkDataConsistency'])->name('data-consistency');
+        Route::post('/comprehensive-test', [\App\Http\Controllers\SystemIntegrationController::class, 'runComprehensiveTest'])->name('comprehensive-test');
+        Route::get('/export-report', [\App\Http\Controllers\SystemIntegrationController::class, 'exportReport'])->name('export-report');
+    });
+});
