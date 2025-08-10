@@ -68,6 +68,21 @@
                         </button>
                     </div>
                     
+                    <!-- Collaboration Controls -->
+                    <div id="collaborationControls" class="d-flex gap-2 align-items-center" style="display: none !important;">
+                        <div class="vr opacity-50 mx-2"></div>
+                        <button type="button" class="btn btn-sm btn-outline-light" id="joinCollaboration" title="Join Collaboration">
+                            <i class="ti ti-users ti-xs"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-light" id="showParticipants" title="Show Participants">
+                            <i class="ti ti-user-check ti-xs"></i>
+                            <span id="participantCount" class="badge bg-primary ms-1">0</span>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-light" id="toggleCollaboration" title="Toggle Collaboration Mode">
+                            <i class="ti ti-broadcast ti-xs"></i>
+                        </button>
+                    </div>
+                    
                     <!-- Image Controls -->
                     <div id="imageControls" class="d-flex gap-2 align-items-center" style="display: none !important;">
                         <button type="button" class="btn btn-sm btn-outline-light" id="imageZoomOut" title="Zoom Out">
@@ -108,6 +123,14 @@
                     <canvas id="pdfCanvas" class="mx-auto d-block"></canvas>
                     <div id="annotationLayer" class="position-absolute top-0 start-0 w-100 h-100" style="pointer-events: none;"></div>
                     <div id="annotationOverlay" class="position-absolute top-0 start-0 w-100 h-100" style="pointer-events: none;"></div>
+                    
+                    <!-- Collaboration UI -->
+                    <div id="collaborationLayer" class="position-absolute top-0 start-0 w-100 h-100" style="pointer-events: none;">
+                        <!-- User cursors -->
+                        <div id="userCursors"></div>
+                        <!-- Collaboration notifications -->
+                        <div id="collaborationNotifications" class="position-absolute top-0 end-0 p-3"></div>
+                    </div>
                 </div>
                 
                 <!-- Image Viewer -->
@@ -1167,7 +1190,507 @@ function updateImageTransform() {
             // Initialize annotation system after modal is shown
             setTimeout(() => {
                 initializeAnnotationSystem();
+                initializeCollaborationSystem();
             }, 500);
         };
+
+        // ===== COLLABORATION SYSTEM =====
+        
+        // Global collaboration variables
+        let currentSession = null;
+        let currentPresence = null;
+        let collaborationInterval = null;
+        let updateInterval = null;
+        let isCollaborationMode = false;
+        let participants = [];
+        let userCursors = {};
+
+        /**
+         * Initialize collaboration system
+         */
+        function initializeCollaborationSystem() {
+            // Show collaboration controls for PDFs
+            if (currentMimeType === 'application/pdf') {
+                document.getElementById('collaborationControls').style.display = 'flex';
+            }
+            
+            // Check for existing collaboration sessions
+            checkActiveSessions();
+        }
+
+        /**
+         * Check for active collaboration sessions
+         */
+        function checkActiveSessions() {
+            if (!currentFileId) return;
+            
+            fetch(`/files/${currentFileId}/collaboration/sessions`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.sessions.length > 0) {
+                        showCollaborationInvite(data.sessions[0]);
+                    }
+                })
+                .catch(error => {
+                    console.error('Failed to check active sessions:', error);
+                });
+        }
+
+        /**
+         * Show collaboration invite
+         */
+        function showCollaborationInvite(session) {
+            const notification = document.createElement('div');
+            notification.className = 'alert alert-info alert-dismissible fade show';
+            notification.innerHTML = `
+                <strong>Collaboration Session Active!</strong><br>
+                ${session.active_users_count} users are currently collaborating on this document.
+                <button type="button" class="btn btn-sm btn-primary ms-2" onclick="joinCollaborationSession('${session.session_id}')">
+                    Join Session
+                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.getElementById('collaborationNotifications').appendChild(notification);
+        }
+
+        /**
+         * Join collaboration session
+         */
+        function joinCollaborationSession(sessionId = null) {
+            if (!currentFileId) return;
+            
+            const data = {
+                session_name: 'Document Review Session',
+                connection_id: generateConnectionId()
+            };
+            
+            fetch(`/files/${currentFileId}/collaboration/join`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    currentSession = data.session;
+                    currentPresence = data.presence;
+                    isCollaborationMode = true;
+                    
+                    // Update UI
+                    document.getElementById('toggleCollaboration').classList.add('btn-primary');
+                    document.getElementById('toggleCollaboration').classList.remove('btn-outline-light');
+                    
+                    // Start real-time updates
+                    startRealTimeUpdates();
+                    
+                    // Show success notification
+                    showNotification('Joined collaboration session!', 'success');
+                }
+            })
+            .catch(error => {
+                console.error('Failed to join collaboration session:', error);
+                showNotification('Failed to join collaboration session', 'error');
+            });
+        }
+
+        /**
+         * Leave collaboration session
+         */
+        function leaveCollaborationSession() {
+            if (!currentSession) return;
+            
+            fetch(`/collaboration/${currentSession.id}/leave`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    currentSession = null;
+                    currentPresence = null;
+                    isCollaborationMode = false;
+                    
+                    // Update UI
+                    document.getElementById('toggleCollaboration').classList.remove('btn-primary');
+                    document.getElementById('toggleCollaboration').classList.add('btn-outline-light');
+                    
+                    // Stop real-time updates
+                    stopRealTimeUpdates();
+                    
+                    // Clear participants
+                    participants = [];
+                    updateParticipantCount();
+                    clearUserCursors();
+                    
+                    showNotification('Left collaboration session', 'info');
+                }
+            })
+            .catch(error => {
+                console.error('Failed to leave collaboration session:', error);
+            });
+        }
+
+        /**
+         * Start real-time updates
+         */
+        function startRealTimeUpdates() {
+            if (!currentSession) return;
+            
+            // Update presence every 30 seconds
+            collaborationInterval = setInterval(() => {
+                updatePresence();
+            }, 30000);
+            
+            // Get updates every 5 seconds
+            updateInterval = setInterval(() => {
+                getRealTimeUpdates();
+            }, 5000);
+            
+            // Initial update
+            updatePresence();
+            getRealTimeUpdates();
+        }
+
+        /**
+         * Stop real-time updates
+         */
+        function stopRealTimeUpdates() {
+            if (collaborationInterval) {
+                clearInterval(collaborationInterval);
+                collaborationInterval = null;
+            }
+            
+            if (updateInterval) {
+                clearInterval(updateInterval);
+                updateInterval = null;
+            }
+        }
+
+        /**
+         * Update user presence
+         */
+        function updatePresence() {
+            if (!currentSession) return;
+            
+            const data = {
+                status: 'online',
+                current_page: currentPage,
+                cursor_position: getCurrentCursorPosition(),
+                activity_data: {
+                    zoom_level: currentScale,
+                    annotation_mode: isAnnotationMode,
+                    current_tool: currentAnnotationTool
+                }
+            };
+            
+            fetch(`/collaboration/${currentSession.id}/presence`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify(data)
+            })
+            .catch(error => {
+                console.error('Failed to update presence:', error);
+            });
+        }
+
+        /**
+         * Get real-time updates
+         */
+        function getRealTimeUpdates() {
+            if (!currentSession) return;
+            
+            fetch(`/collaboration/${currentSession.id}/updates`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const updates = data.updates;
+                        
+                        // Update participants
+                        participants = updates.participants;
+                        updateParticipantCount();
+                        updateUserCursors();
+                        
+                        // Handle new annotations
+                        if (updates.recent_annotations.length > 0) {
+                            handleNewAnnotations(updates.recent_annotations);
+                        }
+                        
+                        // Handle new comments
+                        if (updates.recent_comments.length > 0) {
+                            handleNewComments(updates.recent_comments);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Failed to get real-time updates:', error);
+                });
+        }
+
+        /**
+         * Handle new annotations from other users
+         */
+        function handleNewAnnotations(newAnnotations) {
+            newAnnotations.forEach(annotation => {
+                // Check if annotation already exists
+                const existingAnnotation = currentAnnotations.find(a => a.id === annotation.id);
+                if (!existingAnnotation) {
+                    currentAnnotations.push(annotation);
+                    createAnnotationElement(annotation);
+                    
+                    // Show notification
+                    showNotification(`${annotation.createdBy} added a ${annotation.type} annotation`, 'info');
+                }
+            });
+        }
+
+        /**
+         * Handle new comments from other users
+         */
+        function handleNewComments(newComments) {
+            newComments.forEach(comment => {
+                // Show notification for new comments
+                showNotification(`${comment.user_name} added a comment`, 'info');
+            });
+        }
+
+        /**
+         * Update participant count
+         */
+        function updateParticipantCount() {
+            const count = participants.filter(p => p.is_active).length;
+            document.getElementById('participantCount').textContent = count;
+        }
+
+        /**
+         * Update user cursors
+         */
+        function updateUserCursors() {
+            clearUserCursors();
+            
+            participants.forEach(participant => {
+                if (participant.is_active && participant.cursor_position && participant.current_page === currentPage) {
+                    createUserCursor(participant);
+                }
+            });
+        }
+
+        /**
+         * Create user cursor element
+         */
+        function createUserCursor(participant) {
+            const cursor = document.createElement('div');
+            cursor.className = 'user-cursor';
+            cursor.dataset.userId = participant.user_id;
+            cursor.style.position = 'absolute';
+            cursor.style.left = participant.cursor_position.x + 'px';
+            cursor.style.top = participant.cursor_position.y + 'px';
+            cursor.style.width = '20px';
+            cursor.style.height = '20px';
+            cursor.style.backgroundColor = getRandomColor(participant.user_id);
+            cursor.style.borderRadius = '50%';
+            cursor.style.border = '2px solid white';
+            cursor.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+            cursor.style.zIndex = '1000';
+            cursor.style.pointerEvents = 'none';
+            
+            // Add user name tooltip
+            cursor.title = participant.user_name;
+            
+            document.getElementById('userCursors').appendChild(cursor);
+            userCursors[participant.user_id] = cursor;
+        }
+
+        /**
+         * Clear user cursors
+         */
+        function clearUserCursors() {
+            document.getElementById('userCursors').innerHTML = '';
+            userCursors = {};
+        }
+
+        /**
+         * Get current cursor position
+         */
+        function getCurrentCursorPosition() {
+            // This would be implemented based on mouse position tracking
+            return { x: 0, y: 0 };
+        }
+
+        /**
+         * Generate connection ID
+         */
+        function generateConnectionId() {
+            return 'conn_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        /**
+         * Get random color for user
+         */
+        function getRandomColor(userId) {
+            const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8'];
+            const index = userId % colors.length;
+            return colors[index];
+        }
+
+        /**
+         * Show notification
+         */
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type} alert-dismissible fade show`;
+            notification.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.getElementById('collaborationNotifications').appendChild(notification);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
+
+        /**
+         * Toggle collaboration mode
+         */
+        function toggleCollaborationMode() {
+            if (isCollaborationMode) {
+                leaveCollaborationSession();
+            } else {
+                joinCollaborationSession();
+            }
+        }
+
+        /**
+         * Show participants modal
+         */
+        function showParticipants() {
+            if (!currentSession) return;
+            
+            fetch(`/collaboration/${currentSession.id}/participants`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showParticipantsModal(data.participants, data.session_stats);
+                    }
+                })
+                .catch(error => {
+                    console.error('Failed to get participants:', error);
+                });
+        }
+
+        /**
+         * Show participants modal
+         */
+        function showParticipantsModal(participants, stats) {
+            const modalHtml = `
+                <div class="modal fade" id="participantsModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Session Participants</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <strong>Session Stats:</strong><br>
+                                    Active Users: ${stats.active_users}<br>
+                                    Total Users: ${stats.total_users}<br>
+                                    Duration: ${stats.session_duration} minutes
+                                </div>
+                                <div class="participants-list">
+                                    ${participants.map(p => `
+                                        <div class="d-flex align-items-center mb-2">
+                                            <div class="avatar avatar-sm me-2" style="background-color: ${getRandomColor(p.user_id)};">
+                                                ${p.user_name.charAt(0).toUpperCase()}
+                                            </div>
+                                            <div>
+                                                <strong>${p.user_name}</strong><br>
+                                                <small class="text-muted">${p.status} • Page ${p.current_page || 'N/A'}</small>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Remove existing modal
+            const existingModal = document.getElementById('participantsModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            // Add new modal
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('participantsModal'));
+            modal.show();
+        }
+
+        // Event listeners for collaboration controls
+        document.addEventListener('DOMContentLoaded', function() {
+            // Join collaboration
+            document.getElementById('joinCollaboration').addEventListener('click', joinCollaborationSession);
+            
+            // Toggle collaboration mode
+            document.getElementById('toggleCollaboration').addEventListener('click', toggleCollaborationMode);
+            
+            // Show participants
+            document.getElementById('showParticipants').addEventListener('click', showParticipants);
+        });
+
+        // Update annotation creation to broadcast to collaboration session
+        const originalCreateAnnotation = window.createAnnotation;
+        window.createAnnotation = function(annotationData) {
+            if (originalCreateAnnotation) {
+                originalCreateAnnotation(annotationData);
+            }
+            
+            // Broadcast to collaboration session
+            if (currentSession && annotationData) {
+                broadcastAnnotation(annotationData);
+            }
+        };
+
+        /**
+         * Broadcast annotation to collaboration session
+         */
+        function broadcastAnnotation(annotationData) {
+            if (!currentSession) return;
+            
+            // This would be called after annotation is created
+            setTimeout(() => {
+                fetch(`/collaboration/${currentSession.id}/broadcast`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({
+                        annotation_id: annotationData.id,
+                        action: 'created'
+                    })
+                })
+                .catch(error => {
+                    console.error('Failed to broadcast annotation:', error);
+                });
+            }, 1000);
+        }
     </script>
     @endpush

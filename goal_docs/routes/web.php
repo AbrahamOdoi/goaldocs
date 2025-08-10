@@ -232,6 +232,16 @@ Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class])->
         Route::post('/annotations/{annotation}/comments', [\App\Http\Controllers\AnnotationController::class, 'addComment'])->name('annotations.comments.store');
         Route::put('/comments/{comment}', [\App\Http\Controllers\AnnotationController::class, 'updateComment'])->name('comments.update');
         Route::delete('/comments/{comment}', [\App\Http\Controllers\AnnotationController::class, 'deleteComment'])->name('comments.destroy');
+        
+        // Real-time collaboration routes
+        Route::post('/{file}/collaboration/join', [\App\Http\Controllers\RealTimeController::class, 'joinSession'])->name('collaboration.join');
+        Route::post('/collaboration/{session}/leave', [\App\Http\Controllers\RealTimeController::class, 'leaveSession'])->name('collaboration.leave');
+        Route::post('/collaboration/{session}/presence', [\App\Http\Controllers\RealTimeController::class, 'updatePresence'])->name('collaboration.presence');
+        Route::get('/collaboration/{session}/participants', [\App\Http\Controllers\RealTimeController::class, 'getParticipants'])->name('collaboration.participants');
+        Route::get('/collaboration/{session}/updates', [\App\Http\Controllers\RealTimeController::class, 'getUpdates'])->name('collaboration.updates');
+        Route::post('/collaboration/{session}/broadcast', [\App\Http\Controllers\RealTimeController::class, 'broadcastAnnotation'])->name('collaboration.broadcast');
+        Route::get('/{file}/collaboration/sessions', [\App\Http\Controllers\RealTimeController::class, 'getActiveSessions'])->name('collaboration.sessions');
+        Route::post('/collaboration/cleanup', [\App\Http\Controllers\RealTimeController::class, 'cleanupSessions'])->name('collaboration.cleanup');
         Route::post('/permissions/assign', [\App\Http\Controllers\FileController::class, 'assignPermissions'])->name('permissions.assign');
         Route::delete('/permissions/remove', [\App\Http\Controllers\FileController::class, 'removePermission'])->name('permissions.remove');
     });
