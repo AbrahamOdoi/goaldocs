@@ -458,3 +458,29 @@ Route::prefix('compliance')->name('compliance.')->group(function () {
     
     Route::get('/download/{filename}', [\App\Http\Controllers\ComplianceController::class, 'downloadReport'])->name('download-report');
 });
+
+// Data Protection & Privacy Routes
+Route::prefix('data-protection')->name('data-protection.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\DataProtectionController::class, 'dashboard'])->name('dashboard');
+    Route::get('/data-subject-requests', [\App\Http\Controllers\DataProtectionController::class, 'dataSubjectRequests'])->name('data-subject-requests');
+    Route::get('/retention-policies', [\App\Http\Controllers\DataProtectionController::class, 'retentionPolicies'])->name('retention-policies');
+    Route::get('/privacy-controls', [\App\Http\Controllers\DataProtectionController::class, 'privacyControls'])->name('privacy-controls');
+    Route::get('/data-anonymization', [\App\Http\Controllers\DataProtectionController::class, 'dataAnonymization'])->name('data-anonymization');
+    Route::get('/consent-management', [\App\Http\Controllers\DataProtectionController::class, 'consentManagement'])->name('consent-management');
+    Route::get('/data-portability', [\App\Http\Controllers\DataProtectionController::class, 'dataPortability'])->name('data-portability');
+    Route::get('/settings', [\App\Http\Controllers\DataProtectionController::class, 'settings'])->name('settings');
+    
+    // API routes
+    Route::prefix('api')->name('api.')->group(function () {
+        Route::post('/process-dsr-request', [\App\Http\Controllers\DataProtectionController::class, 'processDataSubjectRequest'])->name('process-dsr-request');
+        Route::post('/apply-retention-policies', [\App\Http\Controllers\DataProtectionController::class, 'applyRetentionPolicies'])->name('apply-retention-policies');
+        Route::post('/update-privacy-controls', [\App\Http\Controllers\DataProtectionController::class, 'updatePrivacyControls'])->name('update-privacy-controls');
+        Route::post('/anonymize-user-data', [\App\Http\Controllers\DataProtectionController::class, 'anonymizeUserData'])->name('anonymize-user-data');
+        Route::get('/user-consent', [\App\Http\Controllers\DataProtectionController::class, 'getUserConsent'])->name('user-consent');
+        Route::post('/export-user-data', [\App\Http\Controllers\DataProtectionController::class, 'exportUserData'])->name('export-user-data');
+        Route::post('/settings', [\App\Http\Controllers\DataProtectionController::class, 'updateSettings'])->name('update-settings');
+        Route::get('/stats', [\App\Http\Controllers\DataProtectionController::class, 'getStats'])->name('stats');
+    });
+    
+    Route::get('/download/{filename}', [\App\Http\Controllers\DataProtectionController::class, 'downloadExport'])->name('download-export');
+});

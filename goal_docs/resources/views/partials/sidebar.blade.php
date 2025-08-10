@@ -136,6 +136,12 @@
               <div data-i18n="Compliance">Compliance</div>
             </a>
           </li>
+          <li class="menu-item">
+            <a href="{{ route('data-protection.dashboard') }}" class="menu-link">
+              <i class="menu-icon tf-icons ti ti-shield-user"></i>
+              <div data-i18n="Data Protection">Data Protection</div>
+            </a>
+          </li>
     
     <li class="menu-item">
       <a href="javascript:void(0);" class="menu-link" onclick="showMyShares()">
