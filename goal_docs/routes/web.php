@@ -217,6 +217,21 @@ Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class])->
         Route::put('/folders/{folder}/update', [\App\Http\Controllers\FileController::class, 'updateFolder'])->name('folders.update');
         Route::get('/permissions', [\App\Http\Controllers\FileController::class, 'getPermissions'])->name('permissions.get');
         Route::post('/permissions/preset', [\App\Http\Controllers\FileController::class, 'applyPreset'])->name('permissions.preset');
+        Route::get('/{file}/preview-info', [\App\Http\Controllers\FileController::class, 'getPreviewInfo'])->name('preview-info');
+        Route::post('/{file}/generate-thumbnail', [\App\Http\Controllers\FileController::class, 'generateThumbnail'])->name('generate-thumbnail');
+        
+        // Annotation routes
+        Route::get('/{file}/annotations', [\App\Http\Controllers\AnnotationController::class, 'getAnnotations'])->name('annotations.index');
+        Route::get('/{file}/annotations/page/{page}', [\App\Http\Controllers\AnnotationController::class, 'getPageAnnotations'])->name('annotations.page');
+        Route::post('/{file}/annotations', [\App\Http\Controllers\AnnotationController::class, 'store'])->name('annotations.store');
+        Route::put('/annotations/{annotation}', [\App\Http\Controllers\AnnotationController::class, 'update'])->name('annotations.update');
+        Route::delete('/annotations/{annotation}', [\App\Http\Controllers\AnnotationController::class, 'destroy'])->name('annotations.destroy');
+        Route::post('/annotations/{annotation}/resolve', [\App\Http\Controllers\AnnotationController::class, 'resolve'])->name('annotations.resolve');
+        Route::post('/annotations/{annotation}/unresolve', [\App\Http\Controllers\AnnotationController::class, 'unresolve'])->name('annotations.unresolve');
+        Route::get('/annotations/{annotation}/comments', [\App\Http\Controllers\AnnotationController::class, 'getComments'])->name('annotations.comments');
+        Route::post('/annotations/{annotation}/comments', [\App\Http\Controllers\AnnotationController::class, 'addComment'])->name('annotations.comments.store');
+        Route::put('/comments/{comment}', [\App\Http\Controllers\AnnotationController::class, 'updateComment'])->name('comments.update');
+        Route::delete('/comments/{comment}', [\App\Http\Controllers\AnnotationController::class, 'deleteComment'])->name('comments.destroy');
         Route::post('/permissions/assign', [\App\Http\Controllers\FileController::class, 'assignPermissions'])->name('permissions.assign');
         Route::delete('/permissions/remove', [\App\Http\Controllers\FileController::class, 'removePermission'])->name('permissions.remove');
     });
@@ -233,7 +248,7 @@ Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class])->
     });
 
     // Document Workflows Routes
-    Route::prefix('workflows')->name('workflows.')->group(function () {
+    Route::prefix('document-workflows')->name('document-workflows.')->group(function () {
         Route::get('/', [\App\Http\Controllers\DocumentWorkflowController::class, 'index'])->name('index');
         Route::post('/', [\App\Http\Controllers\DocumentWorkflowController::class, 'store'])->name('store');
         Route::post('/{workflow}/start', [\App\Http\Controllers\DocumentWorkflowController::class, 'start'])->name('start');

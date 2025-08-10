@@ -228,12 +228,15 @@
                                                         <i class="ti ti-dots-vertical"></i>
                                                     </button>
                                                     <ul class="dropdown-menu">
+                                                        <li><a class="dropdown-item" href="#" onclick="openFilePreview({{ $file->id }}, '{{ addslashes($file->original_name) }}', '{{ $file->preview_url }}', '{{ $file->mime_type }}', {{ $file->file_size }})">
+                                                            <i class="ti ti-eye me-2"></i>Preview
+                                                        </a></li>
                                                         <li><a class="dropdown-item" href="{{ $file->download_url }}">
                                                             <i class="ti ti-download me-2"></i>Download
                                                         </a></li>
                                                         @if($file->is_image || $file->is_document)
                                                             <li><a class="dropdown-item" href="{{ $file->preview_url }}" target="_blank">
-                                                                <i class="ti ti-eye me-2"></i>Preview
+                                                                <i class="ti ti-external-link me-2"></i>Open in New Tab
                                                             </a></li>
                                                         @endif
                                                         <li><a class="dropdown-item" href="#" onclick="toggleFavorite({{ $file->id }}, null)">
@@ -2764,6 +2767,35 @@ function triggerRefresh() {
 <!-- Main JS -->
 <script src="{{ asset('assets/js/main.js') }}"></script>
 
+<script>
+/**
+ * Open file preview modal
+ */
+function openFilePreview(fileId, fileName, fileUrl, mimeType, fileSize) {
+    // Use the global function from preview-modal.blade.php
+    if (typeof openDocumentPreview === 'function') {
+        openDocumentPreview(fileId, fileName, fileUrl, mimeType, fileSize);
+    } else {
+        // Fallback to regular preview URL if modal is not available
+        window.open(fileUrl, '_blank');
+    }
+}
+
+/**
+ * Check if file type is previewable
+ */
+function isFilePreviewable(mimeType) {
+    const previewableTypes = [
+        'application/pdf',
+        'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+        'text/plain', 'text/html', 'text/css', 'text/javascript', 'application/javascript',
+        'application/json', 'application/xml', 'text/xml', 'text/csv', 'text/markdown'
+    ];
+    
+    return previewableTypes.includes(mimeType) || mimeType.startsWith('text/');
+}
+</script>
+
 <style>
 .folder-card:hover, .file-card:hover {
     transform: translateY(-2px);
@@ -3175,6 +3207,9 @@ function triggerRefresh() {
         </div>
     </div>
 </div>
+
+<!-- Include Document Preview Modal -->
+@include('files.preview-modal')
 
 </body>
 </html> 

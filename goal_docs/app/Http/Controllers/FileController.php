@@ -29,6 +29,29 @@ class FileController extends Controller
         'exe', 'bat', 'cmd', 'com', 'pif', 'scr', 'vbs', 'js', 'jar', 
         'msi', 'app', 'deb', 'rpm', 'dmg', 'pkg', 'sh', 'bin', 'run'
     ];
+    
+    /**
+     * Preview-supported file types
+     */
+    private $previewableTypes = [
+        'application/pdf',
+        'image/jpeg',
+        'image/jpg', 
+        'image/png',
+        'image/gif',
+        'image/webp',
+        'image/svg+xml',
+        'text/plain',
+        'text/html',
+        'text/css',
+        'text/javascript',
+        'application/javascript',
+        'application/json',
+        'application/xml',
+        'text/xml',
+        'text/csv',
+        'text/markdown'
+    ];
 
     /**
      * Maximum file size in bytes (100MB)
@@ -1161,5 +1184,229 @@ class FileController extends Controller
             'permission' => $permission,
             'message' => 'Permission preset applied successfully'
         ]);
+    }
+    
+    /**
+     * Get preview information for a file
+     */
+    public function getPreviewInfo(File $file): JsonResponse
+    {
+        $user = Auth::user();
+        
+        // Check if user has permission to view this file
+        if (!$this->permissionService->userHasPermission($user, $file, 'view')) {
+            return response()->json(['error' => 'Access denied'], 403);
+        }
+        
+        // Check if file is previewable
+        $isPreviewable = in_array($file->mime_type, $this->previewableTypes);
+        
+        // Get preview URL
+        $previewUrl = null;
+        if ($isPreviewable) {
+            $previewUrl = route('files.preview', $file);
+        }
+        
+        // Log activity
+        RecentActivity::log(
+            $user->id,
+            $user->type,
+            $user->type_name,
+            'preview_request',
+            $file->id,
+            null,
+            ['file_name' => $file->original_name, 'mime_type' => $file->mime_type]
+        );
+        
+        return response()->json([
+            'success' => true,
+            'file' => [
+                'id' => $file->id,
+                'name' => $file->original_name,
+                'size' => $file->file_size,
+                'mime_type' => $file->mime_type,
+                'is_previewable' => $isPreviewable,
+                'preview_url' => $previewUrl,
+                'download_url' => route('files.download', $file),
+                'last_modified' => $file->updated_at->toISOString(),
+            ]
+        ]);
+    }
+    
+    /**
+     * Check if a file type is previewable
+     */
+    public function isPreviewable(string $mimeType): bool
+    {
+        return in_array($mimeType, $this->previewableTypes);
+    }
+    
+    /**
+     * Generate thumbnail for a file
+     */
+    public function generateThumbnail(File $file): JsonResponse
+    {
+        $user = Auth::user();
+        
+        // Check if user has permission to view this file
+        if (!$this->permissionService->userHasPermission($user, $file, 'view')) {
+            return response()->json(['error' => 'Access denied'], 403);
+        }
+        
+        try {
+            $thumbnailPath = $this->createThumbnail($file);
+            
+            if ($thumbnailPath) {
+                // Update file model with thumbnail path
+                $file->update(['thumbnail_path' => $thumbnailPath]);
+                
+                return response()->json([
+                    'success' => true,
+                    'thumbnail_url' => asset('storage/thumbnails/' . basename($thumbnailPath)),
+                    'message' => 'Thumbnail generated successfully'
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Thumbnail generation not supported for this file type'
+                ], 400);
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('Thumbnail generation failed: ' . $e->getMessage(), [
+                'file_id' => $file->id,
+                'file_name' => $file->original_name
+            ]);
+            
+            return response()->json([
+                'error' => 'Failed to generate thumbnail: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Create thumbnail for supported file types
+     */
+    private function createThumbnail(File $file): ?string
+    {
+        $thumbnailDir = storage_path('app/public/thumbnails');
+        if (!file_exists($thumbnailDir)) {
+            mkdir($thumbnailDir, 0755, true);
+        }
+        
+        $sourceFile = Storage::disk('local')->path($file->file_path);
+        $thumbnailName = 'thumb_' . $file->id . '_' . time() . '.jpg';
+        $thumbnailPath = $thumbnailDir . '/' . $thumbnailName;
+        
+        // Generate thumbnail based on file type
+        if (strpos($file->mime_type, 'image/') === 0) {
+            return $this->createImageThumbnail($sourceFile, $thumbnailPath, $file->mime_type);
+        } elseif ($file->mime_type === 'application/pdf') {
+            return $this->createPdfThumbnail($sourceFile, $thumbnailPath);
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Create thumbnail for image files
+     */
+    private function createImageThumbnail(string $sourceFile, string $thumbnailPath, string $mimeType): ?string
+    {
+        try {
+            $image = null;
+            
+            switch ($mimeType) {
+                case 'image/jpeg':
+                case 'image/jpg':
+                    $image = imagecreatefromjpeg($sourceFile);
+                    break;
+                case 'image/png':
+                    $image = imagecreatefrompng($sourceFile);
+                    break;
+                case 'image/gif':
+                    $image = imagecreatefromgif($sourceFile);
+                    break;
+                case 'image/webp':
+                    $image = imagecreatefromwebp($sourceFile);
+                    break;
+                default:
+                    return null;
+            }
+            
+            if (!$image) return null;
+            
+            $width = imagesx($image);
+            $height = imagesy($image);
+            
+            // Calculate thumbnail dimensions (max 200x200, maintaining aspect ratio)
+            $maxSize = 200;
+            if ($width > $height) {
+                $thumbWidth = $maxSize;
+                $thumbHeight = intval($height * ($maxSize / $width));
+            } else {
+                $thumbHeight = $maxSize;
+                $thumbWidth = intval($width * ($maxSize / $height));
+            }
+            
+            // Create thumbnail
+            $thumbnail = imagecreatetruecolor($thumbWidth, $thumbHeight);
+            
+            // Handle transparency for PNG and GIF
+            if ($mimeType === 'image/png' || $mimeType === 'image/gif') {
+                imagealphablending($thumbnail, false);
+                imagesavealpha($thumbnail, true);
+                $transparent = imagecolorallocatealpha($thumbnail, 255, 255, 255, 127);
+                imagefill($thumbnail, 0, 0, $transparent);
+            }
+            
+            imagecopyresampled($thumbnail, $image, 0, 0, 0, 0, $thumbWidth, $thumbHeight, $width, $height);
+            
+            // Save as JPEG
+            $success = imagejpeg($thumbnail, $thumbnailPath, 85);
+            
+            imagedestroy($image);
+            imagedestroy($thumbnail);
+            
+            return $success ? $thumbnailPath : null;
+            
+        } catch (\Exception $e) {
+            Log::error('Image thumbnail creation failed: ' . $e->getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * Create thumbnail for PDF files
+     */
+    private function createPdfThumbnail(string $sourceFile, string $thumbnailPath): ?string
+    {
+        try {
+            // This would require ImageMagick or Ghostscript
+            // For now, return a default PDF icon thumbnail
+            $defaultPdfIcon = public_path('assets/img/icons/pdf-icon.jpg');
+            
+            if (file_exists($defaultPdfIcon)) {
+                copy($defaultPdfIcon, $thumbnailPath);
+                return $thumbnailPath;
+            }
+            
+            // Alternative: Use a simple colored rectangle as PDF thumbnail
+            $thumbnail = imagecreatetruecolor(200, 200);
+            $bg = imagecolorallocate($thumbnail, 220, 53, 69); // PDF red color
+            imagefill($thumbnail, 0, 0, $bg);
+            
+            $white = imagecolorallocate($thumbnail, 255, 255, 255);
+            imagestring($thumbnail, 5, 80, 90, 'PDF', $white);
+            
+            $success = imagejpeg($thumbnail, $thumbnailPath, 85);
+            imagedestroy($thumbnail);
+            
+            return $success ? $thumbnailPath : null;
+            
+        } catch (\Exception $e) {
+            Log::error('PDF thumbnail creation failed: ' . $e->getMessage());
+            return null;
+        }
     }
 }

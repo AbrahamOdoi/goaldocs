@@ -33,7 +33,13 @@ class WorkflowController extends Controller
         
         $stats = $this->workflowService->getWorkflowStats();
         $pendingActions = $this->workflowService->getUserPendingActions($user->id);
-        $activeWorkflows = Workflow::active()->with('creator')->get();
+        
+        // Get active workflow instances with their workflows and files
+        $activeWorkflows = WorkflowInstance::with(['workflow', 'file', 'initiator'])
+            ->where('status', 'in_progress')
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
         
         return view('workflows.dashboard', compact('stats', 'pendingActions', 'activeWorkflows'));
     }

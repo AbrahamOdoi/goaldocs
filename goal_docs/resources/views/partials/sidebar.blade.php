@@ -1,4 +1,4 @@
-{{-- Sidebar Partial --}}
+{{-- Sidebar Partial v1.0.4 - Cleaned up duplicate Advanced Features --}}
 <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
 
   
@@ -89,7 +89,7 @@
       </a>
     </li>
     <li class="menu-item">
-      <a href="{{ route('workflows.dashboard') }}" class="menu-link">
+      <a href="{{ route('workflows.index') }}" class="menu-link">
         <i class="menu-icon tf-icons ti ti-git-branch"></i>
         <div data-i18n="Workflows">Workflows</div>
       </a>
@@ -208,24 +208,7 @@
             <div data-i18n="{{ $label }}">{{ $label }}</div>
           </a>
         </li>
-        <li class="menu-item">
-          <a href="{{ route('analytics.dashboard') }}" class="menu-link">
-            <i class="menu-icon tf-icons ti ti-chart-bar"></i>
-            <div data-i18n="Analytics">Analytics</div>
-          </a>
-        </li>
-        <li class="menu-item">
-          <a href="{{ route('security.dashboard') }}" class="menu-link">
-            <i class="menu-icon tf-icons ti ti-shield-lock"></i>
-            <div data-i18n="Security">Security</div>
-          </a>
-        </li>
-        <li class="menu-item">
-          <a href="{{ route('workflows.dashboard') }}" class="menu-link">
-            <i class="menu-icon tf-icons ti ti-git-branch"></i>
-            <div data-i18n="Workflows">Workflows</div>
-          </a>
-        </li>
+
         @if(auth()->user()->type !== 'individual')
         <li class="menu-item">
           <a href="{{ route('users.index') }}" class="menu-link">
