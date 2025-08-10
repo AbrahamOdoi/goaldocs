@@ -297,6 +297,27 @@ Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class])->
         Route::post('/analytics/api/report', [\App\Http\Controllers\AnalyticsController::class, 'generateReport'])->name('analytics.api.report');
         Route::post('/analytics/api/export', [\App\Http\Controllers\AnalyticsController::class, 'export'])->name('analytics.api.export');
         Route::post('/analytics/api/clear-cache', [\App\Http\Controllers\AnalyticsController::class, 'clearCache'])->name('analytics.api.clear-cache');
+
+// Reports routes
+Route::prefix('reports')->name('reports.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\ReportController::class, 'index'])->name('index');
+    Route::get('/create', [\App\Http\Controllers\ReportController::class, 'create'])->name('create');
+    Route::post('/', [\App\Http\Controllers\ReportController::class, 'store'])->name('store');
+    Route::get('/{report}', [\App\Http\Controllers\ReportController::class, 'show'])->name('show');
+    Route::get('/{report}/edit', [\App\Http\Controllers\ReportController::class, 'edit'])->name('edit');
+    Route::put('/{report}', [\App\Http\Controllers\ReportController::class, 'update'])->name('update');
+    Route::delete('/{report}', [\App\Http\Controllers\ReportController::class, 'destroy'])->name('destroy');
+    Route::post('/{report}/generate', [\App\Http\Controllers\ReportController::class, 'generate'])->name('generate');
+    Route::get('/download/{generation}', [\App\Http\Controllers\ReportController::class, 'download'])->name('download');
+    Route::get('/status/{generation}', [\App\Http\Controllers\ReportController::class, 'status'])->name('status');
+    
+    // API routes
+    Route::prefix('api')->name('api.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\ReportController::class, 'apiIndex'])->name('index');
+        Route::get('/public', [\App\Http\Controllers\ReportController::class, 'apiPublic'])->name('public');
+        Route::get('/stats', [\App\Http\Controllers\ReportController::class, 'stats'])->name('stats');
+    });
+});
         
         Route::post('/permissions/assign', [\App\Http\Controllers\FileController::class, 'assignPermissions'])->name('permissions.assign');
         Route::delete('/permissions/remove', [\App\Http\Controllers\FileController::class, 'removePermission'])->name('permissions.remove');
