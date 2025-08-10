@@ -297,6 +297,9 @@ Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class])->
         Route::post('/analytics/api/report', [\App\Http\Controllers\AnalyticsController::class, 'generateReport'])->name('analytics.api.report');
         Route::post('/analytics/api/export', [\App\Http\Controllers\AnalyticsController::class, 'export'])->name('analytics.api.export');
         Route::post('/analytics/api/clear-cache', [\App\Http\Controllers\AnalyticsController::class, 'clearCache'])->name('analytics.api.clear-cache');
+    });
+
+
 
 // Reports routes
 Route::prefix('reports')->name('reports.')->group(function () {
@@ -483,4 +486,30 @@ Route::prefix('data-protection')->name('data-protection.')->group(function () {
     });
     
     Route::get('/download/{filename}', [\App\Http\Controllers\DataProtectionController::class, 'downloadExport'])->name('download-export');
+});
+
+// Security Monitoring Routes
+Route::prefix('security-monitoring')->name('security-monitoring.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\SecurityMonitoringController::class, 'dashboard'])->name('dashboard');
+    Route::get('/real-time', [\App\Http\Controllers\SecurityMonitoringController::class, 'realTimeMonitoring'])->name('real-time');
+    Route::get('/threat-detection', [\App\Http\Controllers\SecurityMonitoringController::class, 'threatDetection'])->name('threat-detection');
+    Route::get('/alerts', [\App\Http\Controllers\SecurityMonitoringController::class, 'securityAlerts'])->name('alerts');
+    Route::get('/incident-response', [\App\Http\Controllers\SecurityMonitoringController::class, 'incidentResponse'])->name('incident-response');
+    Route::get('/vulnerability-assessment', [\App\Http\Controllers\SecurityMonitoringController::class, 'vulnerabilityAssessment'])->name('vulnerability-assessment');
+    Route::get('/reporting', [\App\Http\Controllers\SecurityMonitoringController::class, 'securityReporting'])->name('reporting');
+    Route::get('/settings', [\App\Http\Controllers\SecurityMonitoringController::class, 'settings'])->name('settings');
+    
+    // API routes
+    Route::prefix('api')->name('api.')->group(function () {
+        Route::get('/real-time-data', [\App\Http\Controllers\SecurityMonitoringController::class, 'getRealTimeData'])->name('real-time-data');
+        Route::get('/threats', [\App\Http\Controllers\SecurityMonitoringController::class, 'getThreats'])->name('threats');
+        Route::get('/alerts', [\App\Http\Controllers\SecurityMonitoringController::class, 'getAlerts'])->name('alerts');
+        Route::post('/incident-response', [\App\Http\Controllers\SecurityMonitoringController::class, 'handleIncidentResponse'])->name('incident-response');
+        Route::get('/statistics', [\App\Http\Controllers\SecurityMonitoringController::class, 'getStatistics'])->name('statistics');
+        Route::get('/vulnerability-assessment', [\App\Http\Controllers\SecurityMonitoringController::class, 'getVulnerabilityAssessment'])->name('vulnerability-assessment');
+        Route::get('/dashboard-data', [\App\Http\Controllers\SecurityMonitoringController::class, 'getDashboardData'])->name('dashboard-data');
+        Route::post('/settings', [\App\Http\Controllers\SecurityMonitoringController::class, 'updateSettings'])->name('update-settings');
+        Route::post('/export-report', [\App\Http\Controllers\SecurityMonitoringController::class, 'exportReport'])->name('export-report');
+        Route::get('/summary', [\App\Http\Controllers\SecurityMonitoringController::class, 'getSummary'])->name('summary');
+    });
 });
