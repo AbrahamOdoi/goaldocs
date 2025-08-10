@@ -393,3 +393,25 @@ Route::prefix('business-intelligence')->name('bi.')->group(function () {
     
     Route::get('/download/{filename}', [\App\Http\Controllers\BusinessIntelligenceController::class, 'download'])->name('download');
 });
+
+// Advanced Insights routes
+Route::prefix('advanced-insights')->name('advanced-insights.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\AdvancedInsightsController::class, 'dashboard'])->name('dashboard');
+    
+    // API routes
+    Route::prefix('api')->name('api.')->group(function () {
+        Route::get('/insights', [\App\Http\Controllers\AdvancedInsightsController::class, 'insights'])->name('insights');
+        Route::get('/optimization', [\App\Http\Controllers\AdvancedInsightsController::class, 'optimization'])->name('optimization');
+        Route::get('/recommendations', [\App\Http\Controllers\AdvancedInsightsController::class, 'recommendations'])->name('recommendations');
+        Route::get('/action-items', [\App\Http\Controllers\AdvancedInsightsController::class, 'actionItems'])->name('action-items');
+        Route::get('/performance', [\App\Http\Controllers\AdvancedInsightsController::class, 'performance'])->name('performance');
+        Route::get('/predictions', [\App\Http\Controllers\AdvancedInsightsController::class, 'predictions'])->name('predictions');
+        Route::post('/export', [\App\Http\Controllers\AdvancedInsightsController::class, 'export'])->name('export');
+        Route::get('/summary', [\App\Http\Controllers\AdvancedInsightsController::class, 'summary'])->name('summary');
+        Route::get('/config', [\App\Http\Controllers\AdvancedInsightsController::class, 'config'])->name('config');
+        Route::post('/config', [\App\Http\Controllers\AdvancedInsightsController::class, 'updateConfig'])->name('update-config');
+        Route::get('/realtime', [\App\Http\Controllers\AdvancedInsightsController::class, 'realtime'])->name('realtime');
+    });
+    
+    Route::get('/download/{filename}', [\App\Http\Controllers\AdvancedInsightsController::class, 'download'])->name('download');
+});

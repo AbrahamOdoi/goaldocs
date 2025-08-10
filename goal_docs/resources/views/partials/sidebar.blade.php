@@ -118,6 +118,12 @@
               <div data-i18n="Business Intelligence">Business Intelligence</div>
             </a>
           </li>
+          <li class="menu-item">
+            <a href="{{ route('advanced-insights.dashboard') }}" class="menu-link">
+              <i class="menu-icon tf-icons ti ti-lightbulb"></i>
+              <div data-i18n="Advanced Insights">Advanced Insights</div>
+            </a>
+          </li>
     
     <li class="menu-item">
       <a href="javascript:void(0);" class="menu-link" onclick="showMyShares()">
