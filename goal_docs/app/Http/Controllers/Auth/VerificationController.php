@@ -175,17 +175,15 @@ class VerificationController extends Controller
             return back()->withErrors(['code' => 'Invalid or expired code']);
         }
 
-        // ✅ Mark user as verified regardless of verification method (email or phone)
-        $user->update(['email_verified_at' => now()]);
-        
-        // Debug logging
-        AuditLogger::log("User {$user->email} completed OTP verification via {$otp->channel}. Email verified at: " . $user->fresh()->email_verified_at);
-
         // ✅ Delete used OTP
         DB::table('otp_codes')->where('id', $otp->id)->delete();
 
-        // Send registration SMS if plain password is in session (registration flow)
+        // Check if this is a registration flow (email verification) or login flow (MFA)
         if (session()->has('plain_password')) {
+            // Registration flow - mark email as verified
+            $user->update(['email_verified_at' => now()]);
+            
+            // Send registration SMS
             $plainPassword = session('plain_password');
             $email = $user->email;
             $phone = $user->phone;
@@ -203,10 +201,19 @@ class VerificationController extends Controller
             $response = \Illuminate\Support\Facades\Http::get($url);
             // Remove plain password from session
             session()->forget('plain_password');
+            
+            // Set MFA verified for registration flow as well
+            session(['mfa_verified' => true]);
+            
+            AuditLogger::log("User {$user->email} completed registration OTP verification via {$otp->channel}");
+            return redirect()->route('dashboard')->with('success', 'Your account has been verified!');
+        } else {
+            // Login flow - MFA verification
+            session(['mfa_verified' => true]);
+            
+            AuditLogger::log("User {$user->email} completed MFA verification via {$otp->channel}");
+            return redirect()->route('dashboard')->with('success', 'Multi-factor authentication successful!');
         }
-
-        AuditLogger::log( "OTP verification successful");
-        return redirect()->route('dashboard')->with('success', 'Your account has been verified!');
     }
 
 

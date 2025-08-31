@@ -102,6 +102,27 @@
   <!-- Main JS -->
   <script src="{{ asset('assets/js/main.js') }}?v=1.0.1"></script>
 
+  <!-- Simple cache clearing on logout -->
+  <script>
+    // Clear cache when user clicks logout
+    document.addEventListener('DOMContentLoaded', function() {
+      const logoutLinks = document.querySelectorAll('a[href*="logout"], button[onclick*="logout"]');
+      logoutLinks.forEach(link => {
+        link.addEventListener('click', function() {
+          // Clear browser cache for auth pages
+          if ('caches' in window) {
+            caches.keys().then((cacheNames) => {
+              cacheNames.forEach((cacheName) => {
+                if (cacheName.includes('goaldocs')) {
+                  caches.delete(cacheName);
+                }
+              });
+            });
+          }
+        });
+      });
+    });
+  </script>
 
   <script>
     // Re-initialize menu on history navigation or when tab becomes active

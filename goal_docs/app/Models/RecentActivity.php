@@ -133,15 +133,21 @@ class RecentActivity extends Model
      */
     public static function log($userId, $userType, $typeName, $activityType, $fileId = null, $folderId = null, $metadata = null): self
     {
-        return static::create([
+        $data = [
             'user_id' => $userId,
             'file_id' => $fileId,
             'folder_id' => $folderId,
             'activity_type' => $activityType,
             'metadata' => $metadata,
             'user_type' => $userType,
-            'type_name' => $typeName,
-        ]);
+        ];
+        
+        // Only set type_name if it's not null or empty
+        if (!empty($typeName)) {
+            $data['type_name'] = $typeName;
+        }
+        
+        return static::create($data);
     }
 
     /**

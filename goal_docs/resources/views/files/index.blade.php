@@ -2903,6 +2903,7 @@ function isFilePreviewable(mimeType) {
     border-radius: 6px;
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
     transform: translateY(0);
+    overflow: hidden; /* Contain hover effects within borders */
 }
 
 .dropdown-menu.show {
@@ -2934,11 +2935,23 @@ function isFilePreviewable(mimeType) {
     white-space: nowrap;
     background-color: transparent;
     border: 0;
+    margin: 0; /* Ensure no margin extends beyond container */
 }
 
 .dropdown-item:hover {
     color: #1e2125;
     background-color: #e9ecef;
+    margin: 0; /* Prevent hover background from extending */
+}
+
+.dropdown-item:first-child:hover {
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+}
+
+.dropdown-item:last-child:hover {
+    border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
 }
 
 .dropdown-divider {

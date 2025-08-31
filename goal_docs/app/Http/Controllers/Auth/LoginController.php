@@ -51,10 +51,14 @@ class LoginController extends Controller
 
     public function logout(Request $request)
     {
+        // Clear MFA verification session
+        $request->session()->forget('mfa_verified');
+        
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         
-        return redirect('/');
+        // Add cache-busting parameter to prevent cached pages
+        return redirect('/?logout=' . time());
     }
 }

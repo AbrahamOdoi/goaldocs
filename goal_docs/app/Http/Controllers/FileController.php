@@ -162,12 +162,15 @@ class FileController extends Controller
             }
         }
 
-        // Check if folder with same name exists in the same parent within the same organization
+        // Check if folder with same name exists in the same parent within the same organization/user
         if ($user->type === 'individual') {
             $exists = Folder::forUserType($user->type)
                 ->where('parent_folder_id', $request->parent_folder_id)
                 ->where('name', $request->name)
+                ->where('created_by', $user->id) // Check only within the same user's folders
                 ->exists();
+                
+
         } else {
             $exists = Folder::forOrganization($user->type, $user->type_name)
                 ->where('parent_folder_id', $request->parent_folder_id)
@@ -176,7 +179,7 @@ class FileController extends Controller
         }
 
         if ($exists) {
-            return response()->json(['error' => 'A folder with this name already exists'], 400);
+            return response()->json(['error' => 'A folder with this name already exists in this location'], 400);
         }
 
         $folder = Folder::create([

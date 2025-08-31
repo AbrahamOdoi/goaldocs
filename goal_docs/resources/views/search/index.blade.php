@@ -2,6 +2,36 @@
 
 @section('title', 'Search & Organize')
 
+@push('styles')
+<style>
+/* Fix z-index layering issue where search page appears behind sidebar */
+.layout-page {
+    position: relative;
+    z-index: 1 !important;
+}
+
+.container-xxl {
+    position: relative;
+    z-index: 2 !important;
+}
+
+/* Ensure search content appears above sidebar */
+.content-wrapper {
+    position: relative;
+    z-index: 3 !important;
+}
+
+/* Fix for any modals or dropdowns in search page */
+.modal {
+    z-index: 9999 !important;
+}
+
+.dropdown-menu {
+    z-index: 9998 !important;
+}
+</style>
+@endpush
+
 @section('content')
 <div class="container-xxl flex-grow-1 container-p-y">
     <div class="row">

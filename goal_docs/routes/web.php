@@ -29,18 +29,21 @@ Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [LoginController::class, 'login']);
     Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
+    Route::post('/register', [RegisterController::class, 'register']);
 });
 
-Route::post('/register', [RegisterController::class, 'register']);
-
+// OTP PROCESS - Must be outside MFA middleware to avoid circular dependency
 Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class])->group(function () {
-    Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
-    // OTP PROCESS
     Route::get('/verify/method', [VerificationController::class, 'chooseMethod'])->name('verification.method');
     Route::post('/verify/send', [VerificationController::class, 'sendOtp'])->name('verification.send');
     Route::get('/verify/enter', [VerificationController::class, 'showOtpForm'])->name('verification.enter');
     Route::post('/verify/check', [VerificationController::class, 'checkOtp'])->name('verification.check');
     Route::post('/resend-otp', [VerificationController::class, 'resendOtp'])->name('otp.resend');
+});
+
+Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class, \App\Http\Middleware\RequireMfa::class])->group(function () {
+    Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+    Route::get('/logout', [LoginController::class, 'logout'])->name('logout.get');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/account', [\App\Http\Controllers\AccountController::class, 'index'])->name('account.settings');
     Route::put('/account', [\App\Http\Controllers\AccountController::class, 'update'])->name('account.settings.update');
@@ -62,6 +65,9 @@ Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class])->
     Route::get('/profile', function () {
         return view('userProfile.profile');
     })->name('profile');
+    Route::get('/profile/update', function () {
+        return view('userProfile.update');
+    })->name('profile.update');
     
     // Hierarchy Management Routes
     Route::prefix('hierarchy')->name('hierarchy.')->group(function () {
@@ -88,19 +94,26 @@ Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class])->
         Route::delete('/{user}', [\App\Http\Controllers\UserManagementController::class, 'destroy'])->name('destroy');
         Route::post('/{user}/toggle-admin', [\App\Http\Controllers\UserManagementController::class, 'toggleAdmin'])->name('toggle-admin');
         Route::post('/{user}/resend-credentials', [\App\Http\Controllers\UserManagementController::class, 'resendCredentials'])->name('resend-credentials');
+        Route::get('/actions', [\App\Http\Controllers\UserManagementController::class, 'actions'])->name('actions');
     });
 
     // File Management Routes (all authenticated users)
     Route::prefix('files')->name('files.')->group(function () {
         Route::get('/', [\App\Http\Controllers\FileController::class, 'index'])->name('index');
         Route::post('/upload', [\App\Http\Controllers\FileController::class, 'upload'])->name('upload');
+        Route::get('/upload', [\App\Http\Controllers\FileController::class, 'showUploadForm'])->name('upload.form');
         Route::post('/folders', [\App\Http\Controllers\FileController::class, 'createFolder'])->name('folders.create');
+        Route::get('/folders/create', [\App\Http\Controllers\FileController::class, 'showCreateFolderForm'])->name('folders.create.form');
+        Route::post('/folders/create', [\App\Http\Controllers\FileController::class, 'createFolder'])->name('folders.create.post');
+        Route::get('/folders/create', [\App\Http\Controllers\FileController::class, 'showCreateFolderForm'])->name('folders.create');
         Route::get('/search', [\App\Http\Controllers\FileController::class, 'search'])->name('search');
         Route::get('/{file}/download', [\App\Http\Controllers\FileController::class, 'download'])->name('download');
+        Route::get('/download/{file}', [\App\Http\Controllers\FileController::class, 'download'])->name('download.alt');
         Route::get('/{file}/preview', [\App\Http\Controllers\FileController::class, 'preview'])->name('preview');
         
         // Advanced Search Routes
         Route::get('/advanced-search', [\App\Http\Controllers\AdvancedSearchController::class, 'index'])->name('advanced-search');
+        Route::get('/search/advanced', [\App\Http\Controllers\AdvancedSearchController::class, 'index'])->name('search.advanced');
         Route::get('/ajax-search', [\App\Http\Controllers\AdvancedSearchController::class, 'ajaxSearch'])->name('ajax-search');
         Route::get('/search-analytics', [\App\Http\Controllers\AdvancedSearchController::class, 'analytics'])->name('search-analytics');
         
@@ -148,6 +161,13 @@ Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class])->
         
         // Admin collaboration routes
         Route::post('/collaboration/cleanup-locks', [\App\Http\Controllers\CollaborationController::class, 'cleanupExpiredLocks'])->name('collaboration.cleanup-locks');
+        
+        // File Permission Routes
+        Route::get('/permissions/get', [\App\Http\Controllers\FilePermissionController::class, 'getPermissions'])->name('permissions.get');
+        Route::post('/permissions/assign', [\App\Http\Controllers\FilePermissionController::class, 'assignPermission'])->name('permissions.assign');
+        Route::delete('/permissions/remove', [\App\Http\Controllers\FilePermissionController::class, 'removePermission'])->name('permissions.remove');
+        Route::get('/permissions/my', [\App\Http\Controllers\FilePermissionController::class, 'myPermissions'])->name('permissions.my');
+        Route::get('/permissions/preset', [\App\Http\Controllers\FilePermissionController::class, 'getPresetPermissions'])->name('permissions.preset');
     });
 
     // Workflow Automation Routes (outside files prefix)
@@ -187,6 +207,7 @@ Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class])->
 
     // Analytics Dashboard Routes
     Route::prefix('analytics')->name('analytics.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\AnalyticsController::class, 'dashboard'])->name('dashboard');
         Route::get('/dashboard', [\App\Http\Controllers\AnalyticsController::class, 'dashboard'])->name('dashboard');
         Route::get('/data', [\App\Http\Controllers\AnalyticsController::class, 'getData'])->name('data');
         Route::get('/files', [\App\Http\Controllers\AnalyticsController::class, 'fileAnalytics'])->name('files');
@@ -215,6 +236,10 @@ Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class])->
         Route::put('/{file}/update', [\App\Http\Controllers\FileController::class, 'update'])->name('update');
         Route::delete('/folders/{folder}', [\App\Http\Controllers\FileController::class, 'deleteFolder'])->name('folders.delete');
         Route::put('/folders/{folder}/update', [\App\Http\Controllers\FileController::class, 'updateFolder'])->name('folders.update');
+        Route::post('/folders/{folder}/move', [\App\Http\Controllers\FileController::class, 'moveFolder'])->name('folders.move');
+        Route::post('/{file}/move', [\App\Http\Controllers\FileController::class, 'moveFile'])->name('move');
+        Route::post('/files/move', [\App\Http\Controllers\FileController::class, 'moveFile'])->name('move.post');
+        Route::get('/files/move', [\App\Http\Controllers\FileController::class, 'showMoveForm'])->name('move');
         Route::get('/permissions', [\App\Http\Controllers\FileController::class, 'getPermissions'])->name('permissions.get');
         Route::post('/permissions/preset', [\App\Http\Controllers\FileController::class, 'applyPreset'])->name('permissions.preset');
         Route::get('/{file}/preview-info', [\App\Http\Controllers\FileController::class, 'getPreviewInfo'])->name('preview-info');
@@ -297,6 +322,13 @@ Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class])->
         Route::post('/analytics/api/report', [\App\Http\Controllers\AnalyticsController::class, 'generateReport'])->name('analytics.api.report');
         Route::post('/analytics/api/export', [\App\Http\Controllers\AnalyticsController::class, 'export'])->name('analytics.api.export');
         Route::post('/analytics/api/clear-cache', [\App\Http\Controllers\AnalyticsController::class, 'clearCache'])->name('analytics.api.clear-cache');
+        
+        // Permission routes
+        Route::get('/permissions', [\App\Http\Controllers\FileController::class, 'permissions'])->name('permissions');
+        Route::get('/permissions/assign', [\App\Http\Controllers\FileController::class, 'showAssignPermissions'])->name('permissions.assign');
+        Route::post('/permissions/assign', [\App\Http\Controllers\FileController::class, 'assignPermissions'])->name('permissions.assign.post');
+        Route::delete('/permissions/remove', [\App\Http\Controllers\FileController::class, 'removePermissions'])->name('permissions.remove');
+        Route::get('/permissions/my', [\App\Http\Controllers\FileController::class, 'getMyPermissions'])->name('permissions.my');
     });
 
 
@@ -321,10 +353,6 @@ Route::prefix('reports')->name('reports.')->group(function () {
         Route::get('/stats', [\App\Http\Controllers\ReportController::class, 'stats'])->name('stats');
     });
 });
-        
-        Route::post('/permissions/assign', [\App\Http\Controllers\FileController::class, 'assignPermissions'])->name('permissions.assign');
-        Route::delete('/permissions/remove', [\App\Http\Controllers\FileController::class, 'removePermission'])->name('permissions.remove');
-    });
 
     // Document Comments Routes
     Route::prefix('comments')->name('comments.')->group(function () {
@@ -352,6 +380,8 @@ Route::prefix('reports')->name('reports.')->group(function () {
     // Search & Organization Routes
     Route::prefix('search')->name('search.')->group(function () {
         Route::get('/', [\App\Http\Controllers\SearchController::class, 'index'])->name('index');
+        Route::get('/advanced', [\App\Http\Controllers\SearchController::class, 'advanced'])->name('advanced');
+        Route::get('/saved', [\App\Http\Controllers\SearchController::class, 'saved'])->name('saved');
         Route::get('/tag-suggestions', [\App\Http\Controllers\SearchController::class, 'getTagSuggestions'])->name('tag-suggestions');
         Route::post('/tags', [\App\Http\Controllers\SearchController::class, 'addTag'])->name('tags.add');
         Route::delete('/tags/{tag}', [\App\Http\Controllers\SearchController::class, 'removeTag'])->name('tags.remove');
@@ -367,7 +397,6 @@ Route::prefix('reports')->name('reports.')->group(function () {
         Route::get('/my', [\App\Http\Controllers\ExternalShareController::class, 'getMyShares'])->name('my');
         Route::delete('/revoke/{share}', [\App\Http\Controllers\ExternalShareController::class, 'revokeShare'])->name('revoke');
     });
-});
 
 // Public share access routes (no auth required)
 Route::prefix('shared')->name('shared.')->group(function () {
@@ -419,11 +448,24 @@ Route::prefix('advanced-insights')->name('advanced-insights.')->group(function (
     Route::get('/download/{filename}', [\App\Http\Controllers\AdvancedInsightsController::class, 'download'])->name('download');
 });
 
+// Admin System Configuration Routes
+Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(function () {
+    Route::get('/settings', [\App\Http\Controllers\AdminController::class, 'settings'])->name('settings');
+    Route::post('/settings/update', [\App\Http\Controllers\AdminController::class, 'updateSettings'])->name('settings.update');
+    Route::get('/settings/update', [\App\Http\Controllers\AdminController::class, 'showUpdateSettings'])->name('settings.update.form');
+    Route::get('/backup', [\App\Http\Controllers\AdminController::class, 'backup'])->name('backup');
+    Route::post('/backup/create', [\App\Http\Controllers\AdminController::class, 'createBackup'])->name('backup.create');
+    Route::get('/recovery', [\App\Http\Controllers\AdminController::class, 'recovery'])->name('recovery');
+    Route::post('/recovery/restore', [\App\Http\Controllers\AdminController::class, 'restoreBackup'])->name('recovery.restore');
+});
+
 // Phase 9: Advanced Security & Compliance Routes
 Route::prefix('security')->name('security.')->group(function () {
     Route::get('/', [\App\Http\Controllers\SecurityController::class, 'dashboard'])->name('dashboard');
     Route::get('/logs', [\App\Http\Controllers\SecurityController::class, 'securityLogs'])->name('logs');
+    Route::get('/audit', [\App\Http\Controllers\SecurityController::class, 'audit'])->name('audit');
     Route::get('/audit-logs', [\App\Http\Controllers\SecurityController::class, 'auditLogs'])->name('audit-logs');
+    Route::get('/audit/report', [\App\Http\Controllers\SecurityController::class, 'auditReport'])->name('audit.report');
     Route::get('/sessions', [\App\Http\Controllers\SecurityController::class, 'userSessions'])->name('sessions');
     Route::get('/policies', [\App\Http\Controllers\SecurityController::class, 'policies'])->name('policies');
     
@@ -545,4 +587,5 @@ Route::prefix('performance-optimization')->name('performance-optimization.')->gr
         Route::get('/performance-metrics', [\App\Http\Controllers\PerformanceOptimizationController::class, 'getPerformanceMetrics'])->name('performance-metrics');
         Route::get('/export-report', [\App\Http\Controllers\PerformanceOptimizationController::class, 'exportReport'])->name('export-report');
     });
+});
 });
