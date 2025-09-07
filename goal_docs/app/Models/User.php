@@ -28,6 +28,7 @@ class User extends Authenticatable
         'is_admin',
         'last_login_at',
         'email_verified_at',
+        'last_seen_at',
     ];
 
     protected $hidden = [
@@ -40,6 +41,7 @@ class User extends Authenticatable
         'last_login_at' => 'datetime',
         'is_active' => 'boolean',
         'is_admin' => 'boolean',
+        'last_seen_at' => 'datetime',
     ];
 
     // Remove all tenant-related relationships and helpers
@@ -47,6 +49,11 @@ class User extends Authenticatable
     public function updateLastLogin(): void
     {
         $this->update(['last_login_at' => now()]);
+    }
+
+    public function updateLastSeen(): void
+    {
+        $this->update(['last_seen_at' => now()]);
     }
 
 
