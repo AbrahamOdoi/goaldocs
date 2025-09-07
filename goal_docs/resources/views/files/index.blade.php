@@ -1508,7 +1508,7 @@ function addPermission() {
             notes: formData.get('notes')
         };
         
-        fetch('{{ route("files.permissions.assign") }}', {
+        fetch('{{ route("files.permissions.assign.post") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

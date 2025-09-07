@@ -77,7 +77,7 @@
       <span class="menu-header-text" data-i18n="Advanced Features">Advanced Features</span>
     </li>
     <li class="menu-item">
-      <a href="{{ route('analytics.dashboard') }}" class="menu-link">
+      <a href="{{ route('files.analytics.dashboard') }}" class="menu-link">
         <i class="menu-icon tf-icons ti ti-chart-bar"></i>
         <div data-i18n="Analytics">Analytics Dashboard</div>
       </a>
@@ -96,7 +96,7 @@
     </li>
 
               <li class="menu-item">
-            <a href="{{ route('analytics.dashboard') }}" class="menu-link">
+            <a href="{{ route('files.analytics.dashboard') }}" class="menu-link">
               <i class="menu-icon tf-icons ti ti-chart-bar"></i>
               <div data-i18n="Analytics">Analytics</div>
             </a>

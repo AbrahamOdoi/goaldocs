@@ -183,7 +183,7 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0">Document Usage</h5>
-                    <a href="{{ route('analytics.document-usage') }}" class="btn btn-sm btn-outline-primary">
+                    <a href="{{ route('files.analytics.document-usage') }}" class="btn btn-sm btn-outline-primary">
                         View Details
                     </a>
                 </div>
@@ -222,7 +222,7 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0">Processing Performance</h5>
-                    <a href="{{ route('analytics.processing') }}" class="btn btn-sm btn-outline-primary">
+                    <a href="{{ route('files.analytics.processing') }}" class="btn btn-sm btn-outline-primary">
                         View Details
                     </a>
                 </div>
@@ -261,7 +261,7 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0">Storage Usage</h5>
-                    <a href="{{ route('analytics.storage') }}" class="btn btn-sm btn-outline-primary">
+                    <a href="{{ route('files.analytics.storage') }}" class="btn btn-sm btn-outline-primary">
                         View Details
                     </a>
                 </div>
@@ -294,7 +294,7 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0">User Activity</h5>
-                    <a href="{{ route('analytics.user-activity') }}" class="btn btn-sm btn-outline-primary">
+                    <a href="{{ route('files.analytics.user-activity') }}" class="btn btn-sm btn-outline-primary">
                         View Details
                     </a>
                 </div>
