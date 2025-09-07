@@ -151,7 +151,7 @@
                 <span class="dropdown-shortcuts-icon rounded-circle mb-2">
                   <i class="ti ti-settings fs-4"></i>
                 </span>
-                <a href="pages-account-settings-account.html" class="stretched-link">Setting</a>
+                <a href="{{ route('account.settings') }}" class="stretched-link">Settings</a>
                 <small class="text-muted mb-0">Account Settings</small>
               </div>
             </div>
@@ -184,8 +184,8 @@
                 <span class="dropdown-shortcuts-icon rounded-circle mb-2">
                   <i class="ti ti-square fs-4"></i>
                 </span>
-                <a href="modal-examples.html" class="stretched-link">Modals</a>
-                <small class="text-muted mb-0">Useful Popups</small>
+                <a href="{{ route('files.index') }}" class="stretched-link">Quick Access</a>
+                <small class="text-muted mb-0">File Management</small>
               </div>
             </div>
           </div>
@@ -408,19 +408,19 @@
             <div class="dropdown-divider"></div>
           </li>
           <li>
-            <a class="dropdown-item" href="pages-profile-user.html">
+            <a class="dropdown-item" href="{{ route('profile') }}">
               <i class="ti ti-user-check me-2 ti-sm"></i>
               <span class="align-middle">My Profile</span>
             </a>
           </li>
           <li>
-            <a class="dropdown-item" href="pages-account-settings-account.html">
+            <a class="dropdown-item" href="{{ route('account.settings') }}">
               <i class="ti ti-settings me-2 ti-sm"></i>
               <span class="align-middle">Settings</span>
             </a>
           </li>
           <li>
-            <a class="dropdown-item" href="pages-account-settings-billing.html">
+            <a class="dropdown-item" href="{{ route('account.billing') }}">
               <span class="d-flex align-items-center align-middle">
                 <i class="flex-shrink-0 ti ti-credit-card me-2 ti-sm"></i>
                 <span class="flex-grow-1 align-middle">Billing</span>

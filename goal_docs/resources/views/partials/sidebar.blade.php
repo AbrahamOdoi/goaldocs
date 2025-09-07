@@ -188,17 +188,17 @@
               </a>
             </li>
             <li class="menu-item">
-              <a href="pages-profile-teams.html" class="menu-link">
+              <a href="{{ route('profile') }}" class="menu-link">
                 <div data-i18n="Teams">Teams</div>
               </a>
             </li>
             <li class="menu-item">
-              <a href="pages-profile-projects.html" class="menu-link">
+              <a href="{{ route('profile') }}" class="menu-link">
                 <div data-i18n="Projects">Projects</div>
               </a>
             </li>
             <li class="menu-item">
-              <a href="pages-profile-connections.html" class="menu-link">
+              <a href="{{ route('account.connections') }}" class="menu-link">
                 <div data-i18n="Connections">Connections</div>
               </a>
             </li>
