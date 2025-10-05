@@ -108,6 +108,24 @@
         <h3 class="mb-1">Welcome to GoalDocs! 👋</h3>
         <p class="mb-4">Please sign-in to your account and start the adventure</p>
 
+        @if(session('success'))
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+
+        @if($errors->any())
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <ul class="mb-0">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+
         <form id="formAuthentication" class="mb-3" action="{{ route('login') }}" method="POST">
             @csrf
             <div class="mb-3">
@@ -197,6 +215,55 @@
 
   <!-- Page JS -->
   <script src="../../../assets/js/pages-auth.js"></script>
+
+  <script>
+    // Handle CSRF token refresh and form submission
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('formAuthentication');
+        const csrfToken = document.querySelector('input[name="_token"]');
+        
+        // Function to refresh CSRF token
+        function refreshCsrfToken() {
+            return fetch('/login', {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.text())
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const newToken = doc.querySelector('input[name="_token"]');
+                if (newToken && csrfToken) {
+                    csrfToken.value = newToken.value;
+                }
+            })
+            .catch(error => {
+                console.error('Error refreshing CSRF token:', error);
+            });
+        }
+        
+        // Handle form submission
+        form.addEventListener('submit', function(e) {
+            const submitButton = form.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Signing in...';
+        });
+        
+        // Handle 419 errors by refreshing token and retrying
+        window.addEventListener('unhandledrejection', function(event) {
+            if (event.reason && event.reason.status === 419) {
+                refreshCsrfToken().then(() => {
+                    alert('Session expired. Please try logging in again.');
+                });
+            }
+        });
+        
+        // Auto-refresh CSRF token every 10 minutes
+        setInterval(refreshCsrfToken, 600000);
+    });
+  </script>
 
 </body>
 

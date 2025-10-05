@@ -21,7 +21,7 @@ Route::get('/force-logout', function () {
     Auth::logout();
     session()->invalidate();
     session()->regenerateToken();
-    return redirect('/')->with('success', 'Logged out for testing.');
+    return redirect()->route('login')->with('success', 'Logged out for testing.');
 });
 
 // Authentication Routes
@@ -43,7 +43,7 @@ Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class])->
 
 Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class, \App\Http\Middleware\RequireMfa::class])->group(function () {
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
-    Route::get('/logout', [LoginController::class, 'logout'])->name('logout.get');
+    // Route::get('/logout', [LoginController::class, 'logout'])->name('logout.get');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/account', [\App\Http\Controllers\AccountController::class, 'index'])->name('account.settings');
     Route::put('/account', [\App\Http\Controllers\AccountController::class, 'update'])->name('account.settings.update');
@@ -439,7 +439,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
 
 // Phase 9: Advanced Security & Compliance Routes
 Route::prefix('security')->name('security.')->group(function () {
-    Route::get('/', [\App\Http\Controllers\SecurityController::class, 'dashboard'])->name('dashboard');
+    Route::get('/', [\App\Http\Controllers\SecurityController::class, 'dashboard'])->name('index');
     Route::get('/logs', [\App\Http\Controllers\SecurityController::class, 'securityLogs'])->name('logs');
     Route::get('/audit', [\App\Http\Controllers\SecurityController::class, 'audit'])->name('audit');
     Route::get('/audit-logs', [\App\Http\Controllers\SecurityController::class, 'auditLogs'])->name('audit-logs');

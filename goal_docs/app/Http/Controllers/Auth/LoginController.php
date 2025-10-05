@@ -49,16 +49,31 @@ class LoginController extends Controller
         return redirect()->route('dashboard');
     }
 
+    // public function logout(Request $request)
+    // {
+    //     // Clear MFA verification session
+    //     $request->session()->forget('mfa_verified');
+        
+    //     Auth::logout();
+        
+    //     // Only invalidate session, don't regenerate token
+    //     $request->session()->invalidate();
+        
+    //     // Force a fresh page load by redirecting to login with a timestamp
+    //     return redirect('/login?logout=' . time())->with('success', 'You have been logged out successfully.');
+    // }
+
     public function logout(Request $request)
     {
         // Clear MFA verification session
         $request->session()->forget('mfa_verified');
         
         Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
         
-        // Add cache-busting parameter to prevent cached pages
-        return redirect('/?logout=' . time());
+        // CRITICAL: Must invalidate AND regenerate token
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();  // ← ADD THIS LINE
+        
+        return redirect('/login')->with('success', 'You have been logged out successfully.');
     }
 }
