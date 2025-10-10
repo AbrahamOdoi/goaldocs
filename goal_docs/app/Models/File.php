@@ -285,12 +285,12 @@ class File extends Model
     }
 
     /**
-     * Delete the physical file from storage
+     * Delete the physical file from storage and database record
      */
     public function deleteFile(): bool
     {
         try {
-            // Delete the main file
+            // Delete the main file from storage
             if (Storage::disk('local')->exists($this->file_path)) {
                 Storage::disk('local')->delete($this->file_path);
             }
@@ -301,6 +301,18 @@ class File extends Model
                     Storage::disk('local')->delete($this->search_metadata['preview_path']);
                 }
             }
+            
+            // Delete all related records first (to maintain referential integrity)
+            $this->versions()->delete();
+            $this->permissions()->delete();
+            $this->tags()->delete();
+            $this->favorites()->delete();
+            $this->comments()->delete();
+            $this->documentLocks()->delete();
+            $this->encryptionKeys()->delete();
+            
+            // Finally, delete the file record from database
+            $this->delete();
             
             return true;
         } catch (\Exception $e) {

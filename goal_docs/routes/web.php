@@ -211,7 +211,7 @@ Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class, \A
         Route::post('/{file}/security/decrypt', [\App\Http\Controllers\SecurityController::class, 'decryptFile'])->name('security.decrypt');
         Route::post('/{file}/security/watermark', [\App\Http\Controllers\SecurityController::class, 'addWatermark'])->name('security.watermark');
         Route::get('/{file}/security/status', [\App\Http\Controllers\SecurityController::class, 'getFileSecurityStatus'])->name('security.status');
-        Route::delete('/{file}', [\App\Http\Controllers\FileController::class, 'deleteFile'])->name('delete');
+        Route::delete('/{file}', [\App\Http\Controllers\FileController::class, 'destroy'])->name('delete');
         Route::put('/{file}/update', [\App\Http\Controllers\FileController::class, 'update'])->name('update');
         Route::delete('/folders/{folder}', [\App\Http\Controllers\FileController::class, 'deleteFolder'])->name('folders.delete');
         Route::put('/folders/{folder}/update', [\App\Http\Controllers\FileController::class, 'updateFolder'])->name('folders.update');

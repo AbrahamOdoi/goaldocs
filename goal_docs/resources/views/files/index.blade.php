@@ -1213,17 +1213,30 @@ function deleteFile(fileId) {
         fetch(`/files/${fileId}`, {
             method: 'DELETE',
             headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
-                showAlert('success', data.message);
-                location.reload();
+                showAlert('success', data.message || 'File deleted successfully');
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
             } else {
-                showAlert('error', data.error);
+                showAlert('error', data.error || 'Failed to delete file');
             }
+        })
+        .catch(error => {
+            console.error('Delete error:', error);
+            showAlert('error', 'Failed to delete file. Please try again.');
         });
     }
 }
@@ -1233,17 +1246,30 @@ function deleteFolder(folderId) {
         fetch(`/files/folders/${folderId}`, {
             method: 'DELETE',
             headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
-                showAlert('success', data.message);
-                location.reload();
+                showAlert('success', data.message || 'Folder deleted successfully');
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
             } else {
-                showAlert('error', data.error);
+                showAlert('error', data.error || 'Failed to delete folder');
             }
+        })
+        .catch(error => {
+            console.error('Delete error:', error);
+            showAlert('error', 'Failed to delete folder. Please try again.');
         });
     }
 }
@@ -3265,4 +3291,5 @@ function isFilePreviewable(mimeType) {
 @include('files.preview-modal')
 
 </body>
+</html> 
 </html> 
