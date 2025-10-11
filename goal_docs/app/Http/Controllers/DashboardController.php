@@ -84,14 +84,14 @@ class DashboardController extends Controller
             $totalFiles = File::count();
             $totalFolders = Folder::count();
             $totalUsers = User::count();
-            $totalStorage = File::sum('size');
+            $totalStorage = File::sum('file_size');
             $activeUsers = User::where('last_seen_at', '>=', Carbon::now()->subDays(7))->count();
         } else {
             // Regular users see only their accessible data
             $totalFiles = File::where('uploaded_by', $user->id)->count();
             $totalFolders = Folder::where('created_by', $user->id)->count();
             $totalUsers = 1; // Just the user
-            $totalStorage = File::where('uploaded_by', $user->id)->sum('size');
+            $totalStorage = File::where('uploaded_by', $user->id)->sum('file_size');
             $activeUsers = 1;
         }
 
@@ -120,7 +120,7 @@ class DashboardController extends Controller
         }
 
         // Storage by file type
-        $storageByType = $query->select('mime_type', DB::raw('SUM(size) as total_size'), DB::raw('COUNT(*) as file_count'))
+        $storageByType = $query->select('mime_type', DB::raw('SUM(file_size) as total_size'), DB::raw('COUNT(*) as file_count'))
             ->groupBy('mime_type')
             ->orderByDesc('total_size')
             ->limit(10)
@@ -129,7 +129,7 @@ class DashboardController extends Controller
         // Storage trend (last 30 days)
         $storageTrend = File::select(
                 DB::raw('DATE(created_at) as date'),
-                DB::raw('SUM(size) as daily_storage'),
+                DB::raw('SUM(file_size) as daily_storage'),
                 DB::raw('COUNT(*) as daily_files')
             )
             ->when(!$isAdmin, function ($q) use ($user) {
@@ -206,7 +206,7 @@ class DashboardController extends Controller
 
         return [
             'total_uploaded' => $files->count(),
-            'total_size' => $files->sum('size'),
+            'total_size' => $files->sum('file_size'),
             'most_popular' => $this->getMostPopularFiles($user, $period, $isAdmin),
             'file_types' => $files->groupBy('extension')->map(function ($items) {
                 return $items->count();
@@ -361,7 +361,7 @@ class DashboardController extends Controller
         ];
 
         // Check storage (if above 90% capacity, mark as warning)
-        $totalStorage = File::sum('size');
+        $totalStorage = File::sum('file_size');
         $storageLimit = 1000000000000; // 1TB example
         if ($totalStorage > $storageLimit * 0.9) {
             $health['storage_status'] = 'warning';
@@ -425,7 +425,7 @@ class DashboardController extends Controller
 
     private function getLargestFiles($user, $isAdmin)
     {
-        $query = File::orderByDesc('size')->limit(5);
+        $query = File::orderByDesc('file_size')->limit(5);
         if (!$isAdmin) {
             $query->where('uploaded_by', $user->id);
         }
