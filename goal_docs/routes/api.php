@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\MobileApiController;
+use App\Http\Controllers\DashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -17,6 +18,16 @@ use App\Http\Controllers\Api\MobileApiController;
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
+});
+
+// Test route
+Route::get('/test', function () {
+    return response()->json(['message' => 'API is working']);
+});
+
+// Dashboard API Routes
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/dashboard/data', [DashboardController::class, 'getData'])->name('dashboard.data');
 });
 
 // Mobile API Routes
