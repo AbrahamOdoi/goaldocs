@@ -461,7 +461,8 @@ class DashboardController extends Controller
     {
         return DB::table('departments')
             ->select('departments.name', DB::raw('COUNT(users.id) as user_count'))
-            ->leftJoin('user_positions', 'departments.id', '=', 'user_positions.department_id')
+            ->leftJoin('positions', 'departments.id', '=', 'positions.department_id')
+            ->leftJoin('user_positions', 'positions.id', '=', 'user_positions.position_id')
             ->leftJoin('users', 'user_positions.user_id', '=', 'users.id')
             ->groupBy('departments.id', 'departments.name')
             ->get();
