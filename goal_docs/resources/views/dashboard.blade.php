@@ -196,7 +196,7 @@
                             <i class="ti ti-dots-vertical"></i>
                         </button>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ route('analytics.dashboard') }}">View Details</a></li>
+                            <li><a class="dropdown-item" href="{{ route('files.analytics.dashboard') }}">View Details</a></li>
                             <li><a class="dropdown-item" href="#">Export Data</a></li>
                         </ul>
                     </div>
