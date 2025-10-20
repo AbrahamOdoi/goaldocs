@@ -1,5 +1,43 @@
 <?php
 
+/**
+ * FileController - Core File Management Controller for GoalDocs Enterprise System
+ * 
+ * This controller handles all file-related operations in the GoalDocs document management system,
+ * including file upload, download, preview, organization, permissions, and security features.
+ * 
+ * Key Features:
+ * - Secure file upload with validation and virus scanning
+ * - Multi-format file support with type detection
+ * - File preview generation for supported formats
+ * - Permission-based access control
+ * - File versioning and history tracking
+ * - Activity logging and audit trails
+ * - Search and organization capabilities
+ * - Security features (blacklisting, size limits)
+ * 
+ * Security Features:
+ * - File type blacklisting for executable files
+ * - File size limits per user type
+ * - MIME type validation
+ * - Permission-based access control
+ * - Activity logging for audit trails
+ * 
+ * Supported Operations:
+ * - File upload with drag & drop support
+ * - File download with permission checks
+ * - File preview for images, PDFs, and text files
+ * - File organization in folders
+ * - File sharing and permissions
+ * - File versioning and history
+ * - File search and filtering
+ * 
+ * @package App\Http\Controllers
+ * @author GoalDocs Development Team
+ * @version 1.0.0
+ * @since 2024
+ */
+
 namespace App\Http\Controllers;
 
 use App\Models\File;
@@ -23,7 +61,12 @@ use Illuminate\Http\Response;
 class FileController extends Controller
 {
     /**
-     * File type blacklist for security
+     * File type blacklist for security purposes.
+     * 
+     * Prevents upload of potentially dangerous executable files and scripts
+     * that could compromise system security.
+     * 
+     * @var array<string> List of blacklisted file extensions
      */
     private $blacklistedExtensions = [
         'exe', 'bat', 'cmd', 'com', 'pif', 'scr', 'vbs', 'js', 'jar', 
@@ -31,7 +74,12 @@ class FileController extends Controller
     ];
     
     /**
-     * Preview-supported file types
+     * File types that support in-browser preview.
+     * 
+     * Defines MIME types that can be displayed directly in the browser
+     * without requiring download or external applications.
+     * 
+     * @var array<string> List of previewable MIME types
      */
     private $previewableTypes = [
         'application/pdf',
@@ -54,20 +102,41 @@ class FileController extends Controller
     ];
 
     /**
-     * Maximum file size in bytes (100MB)
+     * Maximum file size limit in bytes (100MB).
+     * 
+     * Prevents upload of excessively large files that could impact
+     * system performance and storage capacity.
+     * 
+     * @var int Maximum file size in bytes
      */
     private $maxFileSize = 100 * 1024 * 1024;
 
     /**
-     * Permission service
+     * Permission service instance for access control.
+     * 
+     * @var PermissionService
      */
     private $permissionService;
 
+    /**
+     * Constructor - Initialize the file controller.
+     * 
+     * @param PermissionService $permissionService Service for handling file permissions
+     */
     public function __construct(PermissionService $permissionService)
     {
         $this->permissionService = $permissionService;
     }
 
+    /**
+     * Check user access permissions for file operations.
+     * 
+     * Validates that the user is authenticated and has appropriate access
+     * to the file management system based on their user type and permissions.
+     * 
+     * @return void
+     * @throws \Illuminate\Http\Exceptions\HttpResponseException If access is denied
+     */
     private function checkUserAccess()
     {
         // All authenticated users can access files
@@ -79,7 +148,13 @@ class FileController extends Controller
     }
 
     /**
-     * Display file browser interface
+     * Display the main file browser interface.
+     * 
+     * Shows the file management interface with folder navigation, file listings,
+     * and organizational context based on the user's type and permissions.
+     * 
+     * @param Request $request HTTP request containing folder and filter parameters
+     * @return \Illuminate\View\View|\Illuminate\Http\RedirectResponse File browser view
      */
     public function index(Request $request)
     {
@@ -120,6 +195,25 @@ class FileController extends Controller
         
         $folders = $foldersQuery->orderBy('name')->get();
         $files = $filesQuery->orderBy('name')->get();
+
+        // Apply permission filtering for non-admin users
+        if (!$user->is_admin) {
+            $folders = $folders->filter(function ($folder) use ($user) {
+                // Always allow creator to see their own folder
+                if ((int)($folder->created_by ?? 0) === (int)$user->id) {
+                    return true;
+                }
+                return $this->permissionService->userHasPermission($user, $folder, 'view');
+            })->values();
+
+            $files = $files->filter(function ($file) use ($user) {
+                // Always allow uploader to see their own file
+                if ((int)($file->uploaded_by ?? 0) === (int)$user->id) {
+                    return true;
+                }
+                return $this->permissionService->userHasPermission($user, $file, 'view');
+            })->values();
+        }
         
         // Build breadcrumb trail
         $breadcrumbs = $this->buildBreadcrumbs($currentFolder);
@@ -965,15 +1059,22 @@ class FileController extends Controller
         switch ($request->assignable_type) {
             case 'user':
             case 'App\\Models\\User':
-                $assignable = User::find($request->assignable_id);
+                $assignable = User::where('type', $user->type)
+                    ->where('type_name', $user->type_name)
+                    ->find($request->assignable_id);
                 break;
             case 'position':
             case 'App\\Models\\Position':
-                $assignable = Position::find($request->assignable_id);
+                $assignable = Position::whereHas('department', function($query) use ($user) {
+                    $query->where('user_type', $user->type)
+                          ->where('type', $user->type_name);
+                })->find($request->assignable_id);
                 break;
             case 'department':
             case 'App\\Models\\Department':
-                $assignable = Department::find($request->assignable_id);
+                $assignable = Department::where('user_type', $user->type)
+                    ->where('type', $user->type_name)
+                    ->find($request->assignable_id);
                 break;
         }
 
@@ -1043,15 +1144,22 @@ class FileController extends Controller
         switch ($request->assignable_type) {
             case 'user':
             case 'App\\Models\\User':
-                $assignable = User::find($request->assignable_id);
+                $assignable = User::where('type', $user->type)
+                    ->where('type_name', $user->type_name)
+                    ->find($request->assignable_id);
                 break;
             case 'position':
             case 'App\\Models\\Position':
-                $assignable = Position::find($request->assignable_id);
+                $assignable = Position::whereHas('department', function($query) use ($user) {
+                    $query->where('user_type', $user->type)
+                          ->where('type', $user->type_name);
+                })->find($request->assignable_id);
                 break;
             case 'department':
             case 'App\\Models\\Department':
-                $assignable = Department::find($request->assignable_id);
+                $assignable = Department::where('user_type', $user->type)
+                    ->where('type', $user->type_name)
+                    ->find($request->assignable_id);
                 break;
         }
 
@@ -1156,15 +1264,22 @@ class FileController extends Controller
         switch ($request->assignable_type) {
             case 'user':
             case 'App\\Models\\User':
-                $assignable = User::find($request->assignable_id);
+                $assignable = User::where('type', $user->type)
+                    ->where('type_name', $user->type_name)
+                    ->find($request->assignable_id);
                 break;
             case 'position':
             case 'App\\Models\\Position':
-                $assignable = Position::find($request->assignable_id);
+                $assignable = Position::whereHas('department', function($query) use ($user) {
+                    $query->where('user_type', $user->type)
+                          ->where('type', $user->type_name);
+                })->find($request->assignable_id);
                 break;
             case 'department':
             case 'App\\Models\\Department':
-                $assignable = Department::find($request->assignable_id);
+                $assignable = Department::where('user_type', $user->type)
+                    ->where('type', $user->type_name)
+                    ->find($request->assignable_id);
                 break;
         }
 

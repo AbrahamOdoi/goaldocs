@@ -1,5 +1,32 @@
 <?php
 
+/**
+ * File Model - Core Document Management Entity for GoalDocs Enterprise System
+ * 
+ * This model represents the central file entity in the GoalDocs document management system,
+ * handling file storage, metadata, permissions, versioning, and search capabilities.
+ * 
+ * Key Features:
+ * - Multi-format file support with type detection and validation
+ * - Advanced search with full-text indexing and content extraction
+ * - Version control and file history tracking
+ * - Permission-based access control
+ * - OCR and text extraction capabilities
+ * - Preview generation and thumbnail support
+ * - Activity tracking and audit logging
+ * 
+ * Supported File Types:
+ * - Documents: PDF, Word, Excel, PowerPoint, Text files
+ * - Images: JPEG, PNG, GIF, BMP, TIFF
+ * - Media: Video and audio files
+ * - Archives: ZIP, RAR, and other compressed formats
+ * 
+ * @package App\Models
+ * @author GoalDocs Development Team
+ * @version 1.0.0
+ * @since 2024
+ */
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -7,39 +34,55 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class File extends Model
 {
     use HasFactory;
 
+    /**
+     * The attributes that are mass assignable.
+     * 
+     * @var array<int, string>
+     */
     protected $fillable = [
-        'name',
-        'original_name',
-        'file_path',
-        'mime_type',
-        'file_size',
-        'extension',
-        'description',
-        'folder_id',
-        'uploaded_by',
-        'user_type',
-        'user_type_name',
-        'metadata',
-        'extracted_text',
-        'search_metadata',
-        'indexed_at',
-        'last_accessed_at',
-    ];
-
-    protected $casts = [
-        'metadata' => 'array',
-        'search_metadata' => 'array',
-        'indexed_at' => 'datetime',
-        'last_accessed_at' => 'datetime',
+        'name',              // Display name for the file
+        'original_name',     // Original filename when uploaded
+        'file_path',         // Storage path to the physical file
+        'mime_type',         // MIME type for content validation
+        'file_size',         // File size in bytes
+        'extension',         // File extension (e.g., 'pdf', 'docx')
+        'description',       // User-provided file description
+        'folder_id',         // Parent folder ID (null for root)
+        'uploaded_by',       // User ID who uploaded the file
+        'user_type',         // User type context (individual, organisation, etc.)
+        'user_type_name',    // Specific organization/entity name
+        'metadata',          // JSON metadata (dimensions, properties, etc.)
+        'extracted_text',    // OCR/extracted text content for search
+        'search_metadata',   // JSON search optimization data
+        'indexed_at',        // Timestamp when file was indexed for search
+        'last_accessed_at',  // Last access timestamp for analytics
     ];
 
     /**
-     * Get the folder this file belongs to
+     * The attributes that should be cast.
+     * 
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'metadata' => 'array',           // JSON metadata storage
+        'search_metadata' => 'array',    // JSON search optimization data
+        'indexed_at' => 'datetime',      // Search indexing timestamp
+        'last_accessed_at' => 'datetime', // Last access timestamp
+    ];
+
+    /**
+     * Get the folder this file belongs to.
+     * 
+     * Returns the parent folder containing this file. Returns null if the file
+     * is in the root directory.
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function folder(): BelongsTo
     {
@@ -47,7 +90,12 @@ class File extends Model
     }
 
     /**
-     * Get the user who uploaded this file
+     * Get the user who uploaded this file.
+     * 
+     * Returns the user entity that originally uploaded this file for
+     * ownership tracking and permission inheritance.
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function uploader(): BelongsTo
     {
@@ -55,7 +103,12 @@ class File extends Model
     }
 
     /**
-     * Get the file versions
+     * Get all versions of this file.
+     * 
+     * Returns all historical versions of this file for version control,
+     * rollback capabilities, and change tracking.
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
     public function versions(): HasMany
     {
@@ -63,7 +116,12 @@ class File extends Model
     }
 
     /**
-     * Get the file permissions
+     * Get all permissions assigned to this file.
+     * 
+     * Returns all permission records that control access to this file,
+     * including user, position, and department-level permissions.
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
     public function permissions(): HasMany
     {
@@ -168,11 +226,16 @@ class File extends Model
     }
 
     /**
-     * Get human readable file size
+     * Get human readable file size.
+     * 
+     * Converts file size from bytes to a human-readable format (KB, MB, GB, TB).
+     * Used for display purposes in the user interface.
+     * 
+     * @return string Human-readable file size (e.g., "2.5 MB")
      */
     public function getHumanSizeAttribute(): string
     {
-        $bytes = $this->size;
+        $bytes = $this->file_size; // Fixed: use file_size instead of size
         $units = ['B', 'KB', 'MB', 'GB', 'TB'];
         
         for ($i = 0; $bytes > 1024 && $i < count($units) - 1; $i++) {
@@ -183,7 +246,12 @@ class File extends Model
     }
 
     /**
-     * Check if file is an image
+     * Check if file is an image.
+     * 
+     * Determines if the file is an image based on MIME type.
+     * Used for preview generation and UI display logic.
+     * 
+     * @return bool True if file is an image
      */
     public function getIsImageAttribute(): bool
     {
@@ -191,7 +259,12 @@ class File extends Model
     }
 
     /**
-     * Check if file is a document
+     * Check if file is a document.
+     * 
+     * Determines if the file is a document that supports text extraction
+     * and full-text search capabilities.
+     * 
+     * @return bool True if file is a supported document type
      */
     public function getIsDocumentAttribute(): bool
     {
@@ -238,7 +311,7 @@ class File extends Model
     public function getPreviewUrlAttribute(): ?string
     {
         if ($this->search_metadata && isset($this->search_metadata['preview_path'])) {
-            return Storage::disk('local')->url($this->search_metadata['preview_path']);
+            return asset('storage/' . $this->search_metadata['preview_path']);
         }
         
         return route('files.preview', $this->id);
@@ -316,13 +389,20 @@ class File extends Model
             
             return true;
         } catch (\Exception $e) {
-            \Log::error("Error deleting file {$this->id}: " . $e->getMessage());
+            Log::error("Error deleting file {$this->id}: " . $e->getMessage());
             return false;
         }
     }
 
     /**
-     * Scope for full-text search
+     * Scope for full-text search across file content.
+     * 
+     * Performs comprehensive search across file names, descriptions, and extracted text
+     * using MySQL's full-text search capabilities with fallback to LIKE queries.
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $searchTerm The search term to look for
+     * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeFullTextSearch($query, $searchTerm)
     {
@@ -336,7 +416,14 @@ class File extends Model
     }
 
     /**
-     * Scope for searching within specific content types
+     * Scope for searching within extracted text content only.
+     * 
+     * Searches specifically within the OCR/extracted text content of files,
+     * useful for finding documents containing specific text content.
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $searchTerm The search term to look for in content
+     * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeSearchInContent($query, $searchTerm)
     {
@@ -344,7 +431,13 @@ class File extends Model
     }
 
     /**
-     * Scope for files that have been indexed for search
+     * Scope for files that have been indexed for search.
+     * 
+     * Returns files that have been processed and indexed for full-text search,
+     * indicating they are ready for search operations.
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeIndexed($query)
     {
@@ -352,7 +445,13 @@ class File extends Model
     }
 
     /**
-     * Scope for files that need indexing
+     * Scope for files that need indexing.
+     * 
+     * Returns files that have not yet been indexed for search, useful for
+     * background processing and search optimization tasks.
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeNeedsIndexing($query)
     {

@@ -245,20 +245,33 @@
                         name: 'phone'
                     },
                     {
-                        data: 'position',
+                        data: 'positions',
                         name: 'positions.name',
                         render: function(data, type, row) {
-                            if (row.position) {
+                            if (row.positions && row.positions.length > 0) {
+                                let positionHtml = '';
+                                row.positions.forEach(function(position, index) {
+                                    const isPrimary = position.is_primary;
+                                    const badgeClass = isPrimary ? 'bg-primary' : 'bg-secondary';
+                                    const primaryText = isPrimary ? ' (Primary)' : '';
+                                    
+                                    positionHtml += `
+                                        <span class="badge ${badgeClass} me-1 mb-1">
+                                            ${position.name}${primaryText}
+                                        </span>
+                                    `;
+                                });
+                                
                                 return `
-                                    <div>
-                                        <strong>${row.position.name}</strong>
+                                    <div class="position-badges">
+                                        ${positionHtml}
                                     </div>
                                     <small class="text-muted">
-                                        ${row.position.department_name} • ${row.position.level.charAt(0).toUpperCase() + row.position.level.slice(1)} Level
+                                        ${row.positions.length} position${row.positions.length > 1 ? 's' : ''} assigned
                                     </small>
                                 `;
                             }
-                            return '<span class="text-muted">No position assigned</span>';
+                            return '<span class="text-muted">No positions assigned</span>';
                         },
                         orderable: true
                     },
@@ -299,6 +312,9 @@
                                     <div class="dropdown-menu dropdown-menu-end">
                                         <a class="dropdown-item" href="{{ url('users') }}/${row.id}/edit">
                                             <i class="ti ti-edit me-1"></i>Edit User
+                                        </a>
+                                        <a class="dropdown-item" href="{{ url('users') }}/${row.id}/assign-positions">
+                                            <i class="ti ti-briefcase me-1"></i>Manage Positions
                                         </a>
                                         ${adminToggle}
                                         <button type="button" class="dropdown-item resend-credentials-btn" 

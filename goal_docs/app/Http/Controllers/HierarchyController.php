@@ -67,9 +67,19 @@ class HierarchyController extends Controller
             'type' => $user->type_name,
             'user_type' => $userType,
             'color' => $request->color,
+            'created_by' => $user->id,
         ]);
 
-        return redirect()->route('hierarchy.index')->with('success', ucfirst($this->getDisplayName($userType)) . ' created successfully!');
+        // Clear any cached department data
+        $this->clearDepartmentCache($user);
+
+        return redirect()->route('hierarchy.index')
+            ->with('success', ucfirst($this->getDisplayName($userType)) . ' created successfully!')
+            ->withHeaders([
+                'Cache-Control' => 'no-cache, no-store, must-revalidate',
+                'Pragma' => 'no-cache',
+                'Expires' => '0'
+            ]);
     }
 
     public function editDepartment(Department $department)
@@ -95,7 +105,13 @@ class HierarchyController extends Controller
             'color' => $request->color,
         ]);
 
-        return redirect()->route('hierarchy.index')->with('success', ucfirst($this->getDisplayName($department->user_type)) . ' updated successfully!');
+        return redirect()->route('hierarchy.index')
+            ->with('success', ucfirst($this->getDisplayName($department->user_type)) . ' updated successfully!')
+            ->withHeaders([
+                'Cache-Control' => 'no-cache, no-store, must-revalidate',
+                'Pragma' => 'no-cache',
+                'Expires' => '0'
+            ]);
     }
 
     public function createPosition(Department $department)
@@ -131,9 +147,19 @@ class HierarchyController extends Controller
             'description' => $request->description,
             'department_id' => $department->id,
             'level' => $request->level,
+            'created_by' => $user->id,
         ]);
 
-        return redirect()->route('hierarchy.index')->with('success', 'Position created successfully!');
+        // Clear any cached department data
+        $this->clearDepartmentCache($user);
+
+        return redirect()->route('hierarchy.index')
+            ->with('success', 'Position created successfully!')
+            ->withHeaders([
+                'Cache-Control' => 'no-cache, no-store, must-revalidate',
+                'Pragma' => 'no-cache',
+                'Expires' => '0'
+            ]);
     }
 
     public function editPosition(Position $position)
@@ -162,7 +188,13 @@ class HierarchyController extends Controller
             'level' => $request->level,
         ]);
 
-        return redirect()->route('hierarchy.index')->with('success', 'Position updated successfully!');
+        return redirect()->route('hierarchy.index')
+            ->with('success', 'Position updated successfully!')
+            ->withHeaders([
+                'Cache-Control' => 'no-cache, no-store, must-revalidate',
+                'Pragma' => 'no-cache',
+                'Expires' => '0'
+            ]);
     }
 
     public function assignPosition(Request $request)
@@ -224,6 +256,170 @@ class HierarchyController extends Controller
         return response()->json(['success' => true, 'message' => 'Position removed successfully!']);
     }
 
+    /**
+     * Assign multiple positions to a user
+     */
+    public function assignMultiplePositions(Request $request)
+    {
+        $this->checkAdminAccess();
+        
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'positions' => 'required|array|min:1',
+            'positions.*.position_id' => 'required|exists:positions,id',
+            'positions.*.is_primary' => 'boolean',
+            'positions.*.start_date' => 'nullable|date',
+        ]);
+
+        $currentUser = Auth::user();
+        $user = User::where('id', $request->user_id)
+            ->where('type', $currentUser->type)
+            ->where('type_name', $currentUser->type_name)
+            ->firstOrFail();
+
+        $positionData = [];
+        $hasPrimary = false;
+
+        foreach ($request->positions as $position) {
+            // Verify position belongs to same organization
+            $positionModel = Position::whereHas('department', function($query) use ($currentUser) {
+                $query->where('user_type', $currentUser->type)
+                      ->where('type', $currentUser->type_name);
+            })->findOrFail($position['position_id']);
+
+            $positionData[$position['position_id']] = [
+                'is_primary' => $position['is_primary'] ?? false,
+                'start_date' => $position['start_date'] ?? now(),
+                'is_active' => true,
+            ];
+
+            if ($position['is_primary'] ?? false) {
+                $hasPrimary = true;
+            }
+        }
+
+        // If no primary position specified, make the first one primary
+        if (!$hasPrimary && !empty($positionData)) {
+            $firstPositionId = array_keys($positionData)[0];
+            $positionData[$firstPositionId]['is_primary'] = true;
+        }
+
+        // If setting a new primary, remove primary from existing positions
+        if ($hasPrimary) {
+            $user->positions()->updateExistingPivot($user->positions->pluck('id'), ['is_primary' => false]);
+        }
+
+        $user->positions()->syncWithoutDetaching($positionData);
+
+        return response()->json(['success' => true, 'message' => 'Positions assigned successfully!']);
+    }
+
+    /**
+     * Set primary position for a user
+     */
+    public function setPrimaryPosition(Request $request)
+    {
+        $this->checkAdminAccess();
+        
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'position_id' => 'required|exists:positions,id',
+        ]);
+
+        $currentUser = Auth::user();
+        $user = User::where('id', $request->user_id)
+            ->where('type', $currentUser->type)
+            ->where('type_name', $currentUser->type_name)
+            ->firstOrFail();
+
+        $position = Position::whereHas('department', function($query) use ($currentUser) {
+            $query->where('user_type', $currentUser->type)
+                  ->where('type', $currentUser->type_name);
+        })->findOrFail($request->position_id);
+
+        // Verify user is assigned to this position
+        if (!$user->positions()->where('position_id', $position->id)->exists()) {
+            return response()->json(['error' => 'User is not assigned to this position'], 400);
+        }
+
+        // Remove primary from all positions
+        $user->positions()->updateExistingPivot($user->positions->pluck('id'), ['is_primary' => false]);
+
+        // Set new primary
+        $user->positions()->updateExistingPivot($position->id, ['is_primary' => true]);
+
+        return response()->json(['success' => true, 'message' => 'Primary position updated successfully!']);
+    }
+
+    /**
+     * Get all positions for a user with primary flag
+     */
+    public function getUserPositions(User $user)
+    {
+        $this->checkAdminAccess();
+        
+        $currentUser = Auth::user();
+        
+        // Verify user belongs to same organization
+        if ($user->type !== $currentUser->type || $user->type_name !== $currentUser->type_name) {
+            abort(403, 'Access denied');
+        }
+
+        $positions = $user->positions()
+            ->with(['department'])
+            ->get()
+            ->map(function ($position) {
+                return [
+                    'id' => $position->id,
+                    'name' => $position->name,
+                    'department' => $position->department->name,
+                    'level' => $position->level,
+                    'is_primary' => $position->pivot->is_primary,
+                    'start_date' => $position->pivot->start_date,
+                    'is_active' => $position->pivot->is_active,
+                ];
+            });
+
+        return response()->json(['positions' => $positions]);
+    }
+
+    /**
+     * Get position history for a user
+     */
+    public function getPositionHistory(User $user)
+    {
+        $this->checkAdminAccess();
+        
+        $currentUser = Auth::user();
+        
+        // Verify user belongs to same organization
+        if ($user->type !== $currentUser->type || $user->type_name !== $currentUser->type_name) {
+            abort(403, 'Access denied');
+        }
+
+        $history = $user->positions()
+            ->with(['department'])
+            ->withPivot(['start_date', 'end_date', 'is_primary', 'is_active', 'created_at', 'updated_at'])
+            ->orderBy('pivot_created_at', 'desc')
+            ->get()
+            ->map(function ($position) {
+                return [
+                    'id' => $position->id,
+                    'name' => $position->name,
+                    'department' => $position->department->name,
+                    'level' => $position->level,
+                    'is_primary' => $position->pivot->is_primary,
+                    'start_date' => $position->pivot->start_date,
+                    'end_date' => $position->pivot->end_date,
+                    'is_active' => $position->pivot->is_active,
+                    'assigned_at' => $position->pivot->created_at,
+                    'updated_at' => $position->pivot->updated_at,
+                ];
+            });
+
+        return response()->json(['history' => $history]);
+    }
+
     private function getDisplayName($userType)
     {
         $typeLabels = [
@@ -238,6 +434,30 @@ class HierarchyController extends Controller
         ];
 
         return $typeLabels[$userType] ?? 'Department';
+    }
+
+    /**
+     * Clear department-related cache
+     */
+    private function clearDepartmentCache($user)
+    {
+        try {
+            // Clear any cached department data for this user
+            $cacheKeys = [
+                "departments_{$user->id}",
+                "departments_{$user->type}_{$user->type_name}",
+                "hierarchy_{$user->id}",
+                "hierarchy_{$user->type}_{$user->type_name}",
+            ];
+            
+            foreach ($cacheKeys as $key) {
+                \Illuminate\Support\Facades\Cache::forget($key);
+            }
+            
+            Log::info('Department cache cleared for user: ' . $user->email);
+        } catch (\Exception $e) {
+            Log::error('Failed to clear department cache: ' . $e->getMessage());
+        }
     }
 
     private function getTypeForUserType($userType)

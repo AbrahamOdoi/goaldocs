@@ -1,5 +1,40 @@
 <?php
 
+/**
+ * FilePermission Model - Access Control Management for GoalDocs Enterprise System
+ * 
+ * This model represents the core permission system in GoalDocs, providing granular
+ * access control for files and folders across users, positions, and departments.
+ * 
+ * Key Features:
+ * - Granular permission system (view, download, edit, upload, delete, reshare, manage)
+ * - Polymorphic assignment to users, positions, and departments
+ * - Permission inheritance from parent folders
+ * - Permission presets for common access patterns
+ * - Audit trail with assignment tracking
+ * - Flexible permission management with custom and preset options
+ * 
+ * Permission Types:
+ * - view: Can see the file/folder in listings
+ * - download: Can download files
+ * - edit: Can modify file content
+ * - upload: Can add new files to folders
+ * - delete: Can remove files/folders
+ * - reshare: Can share files with others
+ * - manage: Can modify permissions (admin-level access)
+ * 
+ * Assignment Types:
+ * - Direct assignment to users
+ * - Assignment to positions (affects all users in that position)
+ * - Assignment to departments (affects all users in that department)
+ * - Inherited permissions from parent folders
+ * 
+ * @package App\Models
+ * @author GoalDocs Development Team
+ * @version 1.0.0
+ * @since 2024
+ */
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,31 +46,51 @@ class FilePermission extends Model
 {
     use HasFactory;
 
+    /**
+     * The attributes that are mass assignable.
+     * 
+     * @var array<int, string>
+     */
     protected $fillable = [
-        'file_id',
-        'folder_id',
-        'assignable_type',
-        'assignable_id',
-        'permissions',
-        'assigned_by',
-        'is_inherited',
-        'inherited_from_folder_id',
-        'notes',
-    ];
-
-    protected $casts = [
-        'permissions' => 'array',
-        'is_inherited' => 'boolean',
-    ];
-
-    protected $appends = [
-        'permission_level',
-        'resource',
-        'resource_type',
+        'file_id',              // File ID (null for folder permissions)
+        'folder_id',            // Folder ID (null for file permissions)
+        'assignable_type',      // Type of assignable entity (User, Position, Department)
+        'assignable_id',        // ID of the assignable entity
+        'permissions',          // JSON array of permission flags
+        'assigned_by',          // User ID who assigned this permission
+        'is_inherited',         // Whether permission is inherited from parent
+        'inherited_from_folder_id', // Folder ID this was inherited from
+        'notes',                // Optional notes about the permission
     ];
 
     /**
-     * Default permission structure
+     * The attributes that should be cast.
+     * 
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'permissions' => 'array',     // Cast permissions to array
+        'is_inherited' => 'boolean',  // Cast inheritance flag to boolean
+    ];
+
+    /**
+     * The accessors to append to the model's array form.
+     * 
+     * @var array<int, string>
+     */
+    protected $appends = [
+        'permission_level',  // Human-readable permission level
+        'resource',          // The file or folder this permission applies to
+        'resource_type',     // Type of resource (file or folder)
+    ];
+
+    /**
+     * Get the default permission structure with all permissions set to false.
+     * 
+     * Returns a standardized permission array that can be used as a starting
+     * point for creating new permissions or as a fallback for missing permissions.
+     * 
+     * @return array Default permission structure
      */
     public static function getDefaultPermissions(): array
     {
@@ -51,7 +106,19 @@ class FilePermission extends Model
     }
 
     /**
-     * Permission level presets
+     * Get predefined permission level presets for common access patterns.
+     * 
+     * Returns a collection of permission presets that can be applied to users,
+     * positions, or departments for standardized access control.
+     * 
+     * Preset Levels:
+     * - view_only: Can only view files/folders
+     * - read_download: Can view and download files
+     * - contributor: Can view, download, edit, and upload files
+     * - editor: Full file management except permission management
+     * - full_access: Complete administrative access
+     * 
+     * @return array Permission presets with their configurations
      */
     public static function getPermissionPresets(): array
     {

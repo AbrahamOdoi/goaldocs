@@ -43,10 +43,16 @@ class LoginController extends Controller
         $user->updateLastLogin();
 
         // Debug logging
-        Log::info('Login attempt for user: ' . $user->email . ', email_verified_at: ' . ($user->email_verified_at ? $user->email_verified_at->toDateTimeString() : 'NULL'));
+        Log::info('Login successful for user: ' . $user->email . ', email_verified_at: ' . ($user->email_verified_at ? $user->email_verified_at->toDateTimeString() : 'NULL'));
 
-        // Redirect to dashboard - middleware will handle verification check
-        return redirect()->route('dashboard');
+        // Always clear previous MFA flag on fresh login
+        $request->session()->forget('mfa_verified');
+
+        // Redirect deterministically based on verification state to avoid loops
+        if (is_null($user->email_verified_at)) {
+            return redirect()->route('verification.method');
+        }
+        return redirect()->route('verification.method'); // enforce MFA every login
     }
 
     // public function logout(Request $request)

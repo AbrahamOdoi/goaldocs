@@ -9,6 +9,9 @@ use App\Models\Position;
 use App\Models\Department;
 use App\Models\FilePermission;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class PermissionService
 {
@@ -325,6 +328,291 @@ class PermissionService
         $this->mergePermissions($effectivePermissions, $this->getInheritedPermissions($user, $resource));
 
         return $effectivePermissions;
+    }
+
+    /**
+     * Bulk assign permissions to multiple resources
+     */
+    public function bulkAssignPermissions(array $assignableData, array $resourceIds, array $permissions, string $resourceType = 'folder'): bool
+    {
+        try {
+            DB::beginTransaction();
+
+            foreach ($assignableData as $assignable) {
+                foreach ($resourceIds as $resourceId) {
+                    $this->assignPermissionInternal(
+                        $assignable['type'],
+                        $assignable['id'],
+                        $resourceId,
+                        $resourceType,
+                        $permissions,
+                        $assignable['assigned_by'] ?? null
+                    );
+                }
+            }
+
+            DB::commit();
+            return true;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Bulk permission assignment failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Copy permissions from one resource to another
+     */
+    public function copyPermissions($sourceResource, $targetResource, array $excludeAssignables = []): bool
+    {
+        try {
+            DB::beginTransaction();
+
+            $sourcePermissions = FilePermission::where(function($query) use ($sourceResource) {
+                if ($sourceResource instanceof File) {
+                    $query->where('file_id', $sourceResource->id);
+                } elseif ($sourceResource instanceof Folder) {
+                    $query->where('folder_id', $sourceResource->id);
+                }
+            })->get();
+
+            foreach ($sourcePermissions as $permission) {
+                // Skip if assignable is in exclude list
+                if (in_array($permission->assignable_type . ':' . $permission->assignable_id, $excludeAssignables)) {
+                    continue;
+                }
+
+                $newPermission = $permission->replicate();
+                $newPermission->file_id = $targetResource instanceof File ? $targetResource->id : null;
+                $newPermission->folder_id = $targetResource instanceof Folder ? $targetResource->id : null;
+                $newPermission->is_inherited = false;
+                $newPermission->inherited_from_folder_id = null;
+                $newPermission->save();
+            }
+
+            DB::commit();
+            return true;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Permission copy failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Apply permission template to assignable
+     */
+    public function applyPermissionTemplate($assignable, $resource, string $templateName): bool
+    {
+        $templates = $this->getPermissionTemplates();
+        
+        if (!isset($templates[$templateName])) {
+            return false;
+        }
+
+        $permissions = $templates[$templateName];
+        return $this->assignPermissionInternal(
+            get_class($assignable),
+            $assignable->id,
+            $resource->id,
+            $resource instanceof File ? 'file' : 'folder',
+            $permissions
+        );
+    }
+
+    /**
+     * Get available permission templates
+     */
+    public function getPermissionTemplates(): array
+    {
+        return [
+            'viewer' => [
+                'view' => true,
+                'download' => true,
+                'edit' => false,
+                'upload' => false,
+                'delete' => false,
+                'reshare' => false,
+                'manage' => false,
+            ],
+            'editor' => [
+                'view' => true,
+                'download' => true,
+                'edit' => true,
+                'upload' => true,
+                'delete' => false,
+                'reshare' => true,
+                'manage' => false,
+            ],
+            'manager' => [
+                'view' => true,
+                'download' => true,
+                'edit' => true,
+                'upload' => true,
+                'delete' => true,
+                'reshare' => true,
+                'manage' => false,
+            ],
+            'admin' => [
+                'view' => true,
+                'download' => true,
+                'edit' => true,
+                'upload' => true,
+                'delete' => true,
+                'reshare' => true,
+                'manage' => true,
+            ],
+            'read_only' => [
+                'view' => true,
+                'download' => false,
+                'edit' => false,
+                'upload' => false,
+                'delete' => false,
+                'reshare' => false,
+                'manage' => false,
+            ],
+        ];
+    }
+
+    /**
+     * Resolve permission conflicts when user has multiple positions
+     */
+    public function resolvePermissionConflicts(User $user, $resource): array
+    {
+        $conflicts = [];
+        $userPositions = $user->activePositions;
+
+        if ($userPositions->count() <= 1) {
+            return $conflicts;
+        }
+
+        $positionPermissions = [];
+        foreach ($userPositions as $position) {
+            $permissions = $this->getDirectPermissions($position, $resource);
+            $positionPermissions[$position->id] = [
+                'position' => $position,
+                'permissions' => $permissions,
+            ];
+        }
+
+        // Check for conflicts in each permission type
+        $permissionTypes = ['view', 'download', 'edit', 'upload', 'delete', 'reshare', 'manage'];
+        
+        foreach ($permissionTypes as $permissionType) {
+            $values = [];
+            foreach ($positionPermissions as $data) {
+                $values[] = $data['permissions'][$permissionType] ?? false;
+            }
+            
+            // If not all values are the same, there's a conflict
+            if (count(array_unique($values)) > 1) {
+                $conflicts[$permissionType] = $positionPermissions;
+            }
+        }
+
+        return $conflicts;
+    }
+
+    /**
+     * Get access report for a resource
+     */
+    public function getAccessReport($resource): array
+    {
+        $permissions = FilePermission::where(function($query) use ($resource) {
+            if ($resource instanceof File) {
+                $query->where('file_id', $resource->id);
+            } elseif ($resource instanceof Folder) {
+                $query->where('folder_id', $resource->id);
+            }
+        })->with(['assignable', 'assignedBy'])->get();
+
+        $report = [
+            'resource' => [
+                'id' => $resource->id,
+                'name' => $resource->name,
+                'type' => $resource instanceof File ? 'file' : 'folder',
+            ],
+            'permissions' => [],
+            'summary' => [
+                'total_assignments' => $permissions->count(),
+                'by_type' => [
+                    'users' => 0,
+                    'positions' => 0,
+                    'departments' => 0,
+                ],
+                'by_permission' => [
+                    'view' => 0,
+                    'download' => 0,
+                    'edit' => 0,
+                    'upload' => 0,
+                    'delete' => 0,
+                    'reshare' => 0,
+                    'manage' => 0,
+                ],
+            ],
+        ];
+
+        foreach ($permissions as $permission) {
+            $assignableType = class_basename($permission->assignable_type);
+            $assignableName = $permission->assignable->name ?? 'Unknown';
+            
+            $report['permissions'][] = [
+                'id' => $permission->id,
+                'assignable_type' => $assignableType,
+                'assignable_name' => $assignableName,
+                'permissions' => $permission->permissions,
+                'assigned_by' => $permission->assignedBy->name ?? 'System',
+                'assigned_at' => $permission->created_at,
+                'is_inherited' => $permission->is_inherited,
+            ];
+
+            // Update summary
+            $report['summary']['by_type'][strtolower($assignableType) . 's']++;
+            
+            foreach ($permission->permissions as $perm => $value) {
+                if ($value) {
+                    $report['summary']['by_permission'][$perm]++;
+                }
+            }
+        }
+
+        return $report;
+    }
+
+    /**
+     * Assign permission to an assignable entity (internal method)
+     */
+    private function assignPermissionInternal(string $assignableType, int $assignableId, int $resourceId, string $resourceType, array $permissions, ?int $assignedBy = null): bool
+    {
+        try {
+            $permissionData = [
+                'assignable_type' => $assignableType,
+                'assignable_id' => $assignableId,
+                'permissions' => $permissions,
+                'assigned_by' => $assignedBy ?? Auth::id(),
+                'is_inherited' => false,
+            ];
+
+            if ($resourceType === 'file') {
+                $permissionData['file_id'] = $resourceId;
+            } else {
+                $permissionData['folder_id'] = $resourceId;
+            }
+
+            FilePermission::updateOrCreate(
+                [
+                    'assignable_type' => $assignableType,
+                    'assignable_id' => $assignableId,
+                    $resourceType . '_id' => $resourceId,
+                ],
+                $permissionData
+            );
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Permission assignment failed: ' . $e->getMessage());
+            return false;
+        }
     }
 
     /**

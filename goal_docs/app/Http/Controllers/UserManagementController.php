@@ -98,7 +98,17 @@ class UserManagementController extends Controller
         // Format data for DataTables
         $data = [];
         foreach ($users as $user) {
-            $primaryPosition = $user->positions->where('pivot.is_primary', true)->first();
+            $positions = $user->positions->map(function($position) {
+                return [
+                    'id' => $position->id,
+                    'name' => $position->name,
+                    'level' => $position->level,
+                    'department_name' => $position->department->name,
+                    'is_primary' => $position->pivot->is_primary,
+                    'start_date' => $position->pivot->start_date,
+                    'is_active' => $position->pivot->is_active
+                ];
+            })->toArray();
             
             $data[] = [
                 'id' => $user->id,
@@ -109,12 +119,7 @@ class UserManagementController extends Controller
                 'phone' => $user->phone,
                 'is_admin' => $user->is_admin,
                 'email_verified_at' => $user->email_verified_at,
-                'position' => $primaryPosition ? [
-                    'id' => $primaryPosition->id,
-                    'name' => $primaryPosition->name,
-                    'level' => $primaryPosition->level,
-                    'department_name' => $primaryPosition->department->name
-                ] : null,
+                'positions' => $positions,
                 'avatar_color' => '#' . substr(md5($user->email), 0, 6),
                 'initials' => strtoupper(substr($user->first_name, 0, 1) . substr($user->last_name, 0, 1))
             ];
@@ -370,5 +375,31 @@ class UserManagementController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to send SMS credentials: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Show assign positions form for a user
+     */
+    public function assignPositions(User $user)
+    {
+        $this->checkUserAccess();
+        $currentUser = Auth::user();
+        
+        // Verify user belongs to same organization
+        if ($user->type !== $currentUser->type || $user->type_name !== $currentUser->type_name) {
+            abort(403, 'Access denied');
+        }
+
+        // Get all available positions for the organization
+        $availablePositions = Position::whereHas('department', function($query) use ($currentUser) {
+            $query->where('user_type', $currentUser->type)
+                  ->where('type', $currentUser->type_name);
+        })
+        ->with('department')
+        ->active()
+        ->orderBy('name')
+        ->get();
+
+        return view('users.assign-positions', compact('user', 'availablePositions'));
     }
 } 

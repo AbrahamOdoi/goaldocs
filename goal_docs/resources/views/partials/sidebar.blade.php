@@ -71,6 +71,12 @@
         <div data-i18n="Advanced Search">Advanced Search</div>
       </a>
     </li>
+    <li class="menu-item">
+      <a href="{{ route('search.files') }}" class="menu-link">
+        <i class="menu-icon tf-icons ti ti-files"></i>
+        <div data-i18n="Search Files">Search Files</div>
+      </a>
+    </li>
     
     <!-- Phase 7 Features - Testing -->
     <li class="menu-header small text-uppercase">

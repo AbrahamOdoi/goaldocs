@@ -1,5 +1,40 @@
 <?php
 
+/**
+ * RecentActivity Model - Activity Tracking and Audit Logging for GoalDocs Enterprise System
+ * 
+ * This model represents the activity tracking system in GoalDocs, providing comprehensive
+ * audit logging and user activity monitoring for compliance, analytics, and user engagement.
+ * 
+ * Key Features:
+ * - Comprehensive activity tracking across all user actions
+ * - Multi-user type support with organizational context
+ * - File and folder activity monitoring
+ * - Workflow and collaboration activity tracking
+ * - Metadata storage for detailed activity information
+ * - Activity feed generation for users and organizations
+ * - Compliance and audit trail capabilities
+ * 
+ * Activity Types:
+ * - File operations: view, download, upload, edit, delete
+ * - Sharing and permissions: share, permission_change
+ * - Collaboration: comment, resolve_comment, reopen_comment, delete_comment
+ * - Organization: favorite, tag
+ * - Workflow: workflow, workflow_step, workflow_assignment
+ * 
+ * Use Cases:
+ * - User activity dashboards and feeds
+ * - Compliance reporting and audit trails
+ * - Analytics and usage statistics
+ * - Security monitoring and anomaly detection
+ * - User engagement tracking
+ * 
+ * @package App\Models
+ * @author GoalDocs Development Team
+ * @version 1.0.0
+ * @since 2024
+ */
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -10,24 +45,39 @@ class RecentActivity extends Model
 {
     use HasFactory;
 
+    /**
+     * The attributes that are mass assignable.
+     * 
+     * @var array<int, string>
+     */
     protected $fillable = [
-        'user_id',
-        'file_id',
-        'folder_id',
-        'activity_type',
-        'metadata',
-        'user_type',
-        'type_name',
+        'user_id',        // User who performed the activity
+        'file_id',        // File involved in the activity (optional)
+        'folder_id',      // Folder involved in the activity (optional)
+        'activity_type',  // Type of activity performed
+        'metadata',       // Additional activity metadata (JSON)
+        'user_type',      // User type context
+        'type_name',      // Organization/entity name
     ];
 
+    /**
+     * The attributes that should be cast.
+     * 
+     * @var array<string, string>
+     */
     protected $casts = [
-        'metadata' => 'array',
-        'created_at' => 'datetime',
+        'metadata' => 'array',     // Cast metadata to array
+        'created_at' => 'datetime', // Cast timestamps to datetime
         'updated_at' => 'datetime',
     ];
 
     /**
-     * Activity types
+     * Activity type constants with human-readable labels.
+     * 
+     * Defines all supported activity types and their display labels
+     * for consistent activity tracking across the system.
+     * 
+     * @var array<string, string>
      */
     const ACTIVITY_TYPES = [
         'view' => 'Viewed',
@@ -129,7 +179,20 @@ class RecentActivity extends Model
     }
 
     /**
-     * Log an activity
+     * Log a new activity entry.
+     * 
+     * Creates a new activity record for tracking user actions across the system.
+     * This method is used throughout the application to maintain comprehensive
+     * audit trails and activity feeds.
+     * 
+     * @param int $userId The user who performed the activity
+     * @param string $userType The user type context
+     * @param string|null $typeName The organization/entity name
+     * @param string $activityType The type of activity performed
+     * @param int|null $fileId The file involved (optional)
+     * @param int|null $folderId The folder involved (optional)
+     * @param array|null $metadata Additional activity metadata (optional)
+     * @return self The created activity record
      */
     public static function log($userId, $userType, $typeName, $activityType, $fileId = null, $folderId = null, $metadata = null): self
     {
@@ -151,7 +214,16 @@ class RecentActivity extends Model
     }
 
     /**
-     * Get recent activities for a user
+     * Get recent activities for a specific user.
+     * 
+     * Retrieves the most recent activities performed by a user within their
+     * organizational context, useful for personal activity feeds and dashboards.
+     * 
+     * @param int $userId The user ID to get activities for
+     * @param string $userType The user type context
+     * @param string|null $typeName The organization/entity name
+     * @param int $limit Maximum number of activities to return
+     * @return \Illuminate\Database\Eloquent\Collection Recent user activities
      */
     public static function getRecentForUser($userId, $userType, $typeName, $limit = 20)
     {
@@ -164,7 +236,15 @@ class RecentActivity extends Model
     }
 
     /**
-     * Get recent activities for an organization
+     * Get recent activities for an organization.
+     * 
+     * Retrieves the most recent activities across all users within an organization,
+     * useful for organizational dashboards and compliance reporting.
+     * 
+     * @param string $userType The user type context
+     * @param string|null $typeName The organization/entity name
+     * @param int $limit Maximum number of activities to return
+     * @return \Illuminate\Database\Eloquent\Collection Recent organizational activities
      */
     public static function getRecentForOrganization($userType, $typeName, $limit = 50)
     {

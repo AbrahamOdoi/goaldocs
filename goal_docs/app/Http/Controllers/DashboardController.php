@@ -1,5 +1,46 @@
 <?php
 
+/**
+ * DashboardController - Enterprise Dashboard Management for GoalDocs System
+ * 
+ * This controller provides comprehensive dashboard functionality for the GoalDocs
+ * enterprise document management system, offering real-time analytics, insights,
+ * and system monitoring capabilities.
+ * 
+ * Key Features:
+ * - Real-time analytics and reporting
+ * - Multi-dimensional data visualization
+ * - User activity monitoring and insights
+ * - Storage and performance analytics
+ * - Security monitoring and compliance tracking
+ * - Workflow and collaboration analytics
+ * - System health monitoring
+ * - Customizable dashboard views
+ * 
+ * Dashboard Sections:
+ * - Overview Statistics: Files, folders, users, storage
+ * - Storage Analytics: Usage patterns, growth trends, optimization
+ * - Activity Analytics: User behavior, engagement, productivity
+ * - Document Analytics: Processing, conversion, search patterns
+ * - Team Analytics: Collaboration, sharing, communication
+ * - Security Analytics: Access patterns, compliance, threats
+ * - Workflow Analytics: Process efficiency, bottlenecks, completion rates
+ * - System Health: Performance metrics, uptime, resource usage
+ * 
+ * Analytics Capabilities:
+ * - Time-based filtering and comparison
+ * - Multi-user type support with organizational context
+ * - Real-time data updates and notifications
+ * - Export capabilities for reporting
+ * - Custom date range selection
+ * - Trend analysis and forecasting
+ * 
+ * @package App\Http\Controllers
+ * @author GoalDocs Development Team
+ * @version 1.0.0
+ * @since 2024
+ */
+
 namespace App\Http\Controllers;
 
 use App\Models\File;
@@ -18,15 +59,31 @@ use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
+    /**
+     * Analytics service instance for data processing.
+     * 
+     * @var AnalyticsService
+     */
     protected $analyticsService;
 
+    /**
+     * Constructor - Initialize the dashboard controller.
+     * 
+     * @param AnalyticsService $analyticsService Service for analytics data processing
+     */
     public function __construct(AnalyticsService $analyticsService)
     {
         $this->analyticsService = $analyticsService;
     }
 
     /**
-     * Display the main enterprise dashboard
+     * Display the main enterprise dashboard with comprehensive analytics.
+     * 
+     * Renders the primary dashboard view with real-time analytics, statistics,
+     * and insights tailored to the user's role and organizational context.
+     * 
+     * @param Request $request HTTP request containing period and filter parameters
+     * @return \Illuminate\View\View Dashboard view with analytics data
      */
     public function index(Request $request)
     {
@@ -73,7 +130,13 @@ class DashboardController extends Controller
     }
 
     /**
-     * Get overview statistics
+     * Get comprehensive overview statistics for the dashboard.
+     * 
+     * Calculates key metrics including file counts, storage usage, user statistics,
+     * and activity metrics based on the user's role and permissions.
+     * 
+     * @param User $user The authenticated user
+     * @return array Overview statistics data
      */
     private function getOverviewStats($user)
     {
@@ -335,7 +398,7 @@ class DashboardController extends Controller
                 ->whereDate('created_at', $today)
                 ->count(),
             'shares_active' => ExternalShare::when(!$isAdmin, function ($q) use ($user) {
-                    return $q->where('user_id', $user->id);
+                    return $q->where('created_by', $user->id);
                 })
                 ->where('expires_at', '>', now())
                 ->orWhereNull('expires_at')
@@ -452,7 +515,7 @@ class DashboardController extends Controller
     {
         $query = ExternalShare::query();
         if (!$isAdmin) {
-            $query->where('user_id', $user->id);
+            $query->where('created_by', $user->id);
         }
         return $query->count();
     }

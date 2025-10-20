@@ -1,11 +1,14 @@
 <?php
 
+use App\Http\Controllers\AnalyticsController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\VerificationController;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\DashboardController;
+use Illuminate\Foundation\Auth\EmailVerificationRequest;
+use Illuminate\Http\Request;
 
 /*
 |--------------------------------------------------------------------------
@@ -30,6 +33,23 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [LoginController::class, 'login']);
     Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
     Route::post('/register', [RegisterController::class, 'register']);
+});
+
+// Email Verification Routes
+Route::middleware('auth')->group(function () {
+    Route::get('/email/verify', function () {
+        return view('auth.verify-email');
+    })->name('verification.notice');
+    
+    Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
+        $request->fulfill();
+        return redirect()->route('dashboard')->with('success', 'Email verified successfully!');
+    })->middleware(['signed'])->name('verification.verify');
+    
+    Route::post('/email/verification-notification', function (Request $request) {
+        $request->user()->sendEmailVerificationNotification();
+        return back()->with('message', 'Verification link sent!');
+    })->middleware(['throttle:6,1'])->name('verification.send');
 });
 
 // OTP PROCESS - Must be outside MFA middleware to avoid circular dependency
@@ -82,6 +102,12 @@ Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class, \A
         Route::put('/positions/{position}', [\App\Http\Controllers\HierarchyController::class, 'updatePosition'])->name('positions.update');
         Route::post('/assign-position', [\App\Http\Controllers\HierarchyController::class, 'assignPosition'])->name('assign-position');
         Route::delete('/remove-position', [\App\Http\Controllers\HierarchyController::class, 'removePosition'])->name('remove-position');
+        
+        // Enhanced Position Management
+        Route::post('/positions/assign-multiple', [\App\Http\Controllers\HierarchyController::class, 'assignMultiplePositions'])->name('positions.assign-multiple');
+        Route::post('/positions/set-primary', [\App\Http\Controllers\HierarchyController::class, 'setPrimaryPosition'])->name('positions.set-primary');
+        Route::get('/user/{user}/positions', [\App\Http\Controllers\HierarchyController::class, 'getUserPositions'])->name('user.positions');
+        Route::get('/user/{user}/position-history', [\App\Http\Controllers\HierarchyController::class, 'getPositionHistory'])->name('user.position-history');
     });
     
     // User Management Routes
@@ -94,6 +120,7 @@ Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class, \A
         Route::delete('/{user}', [\App\Http\Controllers\UserManagementController::class, 'destroy'])->name('destroy');
         Route::post('/{user}/toggle-admin', [\App\Http\Controllers\UserManagementController::class, 'toggleAdmin'])->name('toggle-admin');
         Route::post('/{user}/resend-credentials', [\App\Http\Controllers\UserManagementController::class, 'resendCredentials'])->name('resend-credentials');
+        Route::get('/{user}/assign-positions', [\App\Http\Controllers\UserManagementController::class, 'assignPositions'])->name('assign-positions');
         Route::get('/actions', [\App\Http\Controllers\UserManagementController::class, 'actions'])->name('actions');
     });
 
@@ -166,6 +193,18 @@ Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class, \A
         Route::delete('/permissions/remove', [\App\Http\Controllers\FilePermissionController::class, 'removePermission'])->name('permissions.remove');
         Route::get('/permissions/my', [\App\Http\Controllers\FilePermissionController::class, 'myPermissions'])->name('permissions.my');
         Route::get('/permissions/preset', [\App\Http\Controllers\FilePermissionController::class, 'getPresetPermissions'])->name('permissions.preset');
+        
+        // Enhanced Permission Management
+        Route::post('/permissions/bulk-assign', [\App\Http\Controllers\FilePermissionController::class, 'bulkAssignPermissions'])->name('permissions.bulk-assign');
+        Route::post('/permissions/copy', [\App\Http\Controllers\FilePermissionController::class, 'copyPermissions'])->name('permissions.copy');
+        Route::get('/permissions/report/{resource}', [\App\Http\Controllers\FilePermissionController::class, 'getAccessReport'])->name('permissions.report');
+        Route::get('/permissions/bulk-assign', [\App\Http\Controllers\FilePermissionController::class, 'showBulkAssign'])->name('permissions.bulk-assign.show');
+    });
+
+    // API Routes for Permission Management
+    Route::prefix('api')->name('api.')->group(function () {
+        Route::get('/assignables/{type}', [\App\Http\Controllers\FilePermissionController::class, 'getAssignables'])->name('assignables');
+        Route::get('/resources/{type}', [\App\Http\Controllers\FilePermissionController::class, 'getResources'])->name('resources');
     });
 
     // Workflow Automation Routes (outside files prefix)
@@ -284,7 +323,7 @@ Route::middleware(['auth', \App\Http\Middleware\EnsureEmailIsVerified::class, \A
         Route::get('/batch-processing/files', [\App\Http\Controllers\BatchProcessingController::class, 'getUserFiles'])->name('batch-processing.files');
         
         // Analytics routes
-        Route::get('/analytics', [\App\Http\Controllers\AnalyticsController::class, 'dashboard'])->name('analytics.dashboard');
+        Route::get('/analytics', [AnalyticsController::class, 'dashboard'])->name('analytics.dashboard');
         Route::get('/analytics/document-usage', [\App\Http\Controllers\AnalyticsController::class, 'documentUsagePage'])->name('analytics.document-usage');
         Route::get('/analytics/processing', [\App\Http\Controllers\AnalyticsController::class, 'processingPage'])->name('analytics.processing');
         Route::get('/analytics/storage', [\App\Http\Controllers\AnalyticsController::class, 'storagePage'])->name('analytics.storage');
@@ -358,6 +397,7 @@ Route::prefix('reports')->name('reports.')->group(function () {
     // Search & Organization Routes
     Route::prefix('search')->name('search.')->group(function () {
         Route::get('/', [\App\Http\Controllers\SearchController::class, 'index'])->name('index');
+        Route::get('/files', [\App\Http\Controllers\SearchController::class, 'searchFiles'])->name('files');
         Route::get('/advanced', [\App\Http\Controllers\SearchController::class, 'advanced'])->name('advanced');
         Route::get('/saved', [\App\Http\Controllers\SearchController::class, 'saved'])->name('saved');
         Route::get('/tag-suggestions', [\App\Http\Controllers\SearchController::class, 'getTagSuggestions'])->name('tag-suggestions');

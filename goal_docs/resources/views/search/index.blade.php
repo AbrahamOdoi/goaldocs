@@ -3,6 +3,9 @@
 @section('title', 'Search & Organize')
 
 @push('styles')
+<!-- Layout Fix CSS -->
+<link rel="stylesheet" href="{{ asset('assets/css/layout-fix.css') }}?v={{ time() }}">
+
 <style>
 /* Fix z-index layering issue where search page appears behind sidebar */
 .layout-page {
@@ -381,7 +384,7 @@
 
 @push('scripts')
 <script>
-let currentFileId = null;
+let searchCurrentFileId = null;
 
 function addTagToFilter(tagName) {
     const currentTags = document.getElementById('tagsFilter').value;
@@ -394,7 +397,7 @@ function addTagToFilter(tagName) {
 }
 
 function showTagModal(fileId) {
-    currentFileId = fileId;
+    searchCurrentFileId = fileId;
     document.getElementById('tagFileId').value = fileId;
     document.getElementById('tagName').value = '';
     document.getElementById('tagSuggestions').innerHTML = '';

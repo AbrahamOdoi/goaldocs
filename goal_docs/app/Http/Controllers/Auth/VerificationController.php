@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Auth;
 
 use App\Helpers\AuditLogger;
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Http;
@@ -24,7 +26,8 @@ class VerificationController extends Controller
             'channel' => 'required|in:email,phone',
         ]);
 
-        $user = auth()->user();
+        /** @var User $user */
+        $user = Auth::user();
 
         // ✅ RATE LIMIT: max 5 per hour
         $key = 'send-otp:' . $user->id;
@@ -81,7 +84,8 @@ class VerificationController extends Controller
     {
         $channel = session('otp_channel', 'email'); // default to email if missing
 
-        $user = auth()->user();
+        /** @var User $user */
+        $user = Auth::user();
 
         // ✅ RATE LIMIT: max 5 per hour
         $key = 'send-otp:' . $user->id;
@@ -143,7 +147,8 @@ class VerificationController extends Controller
         $channel = session('otp_channel', 'email'); // default to email if missing
 
         // optional: last 4 digits or masked email
-        $user = auth()->user();
+        /** @var User $user */
+        $user = Auth::user();
         $masked = $channel === 'phone'
             ? substr($user->phone, -4)
             : substr($user->email, 0, 4) . '****';
@@ -162,7 +167,8 @@ class VerificationController extends Controller
             'code' => 'required|digits:6',
         ]);
 
-        $user = auth()->user();
+        /** @var User $user */
+        $user = Auth::user();
 
         $otp = DB::table('otp_codes')
             ->where('user_id', $user->id)
@@ -182,6 +188,10 @@ class VerificationController extends Controller
         if (session()->has('plain_password')) {
             // Registration flow - mark email as verified
             $user->update(['email_verified_at' => now()]);
+            
+            // Initialize organization structure with default folders and departments
+            $organizationSetupService = app(\App\Services\OrganizationSetupService::class);
+            $organizationSetupService->initializeOrganization($user);
             
             // Send registration SMS
             $plainPassword = session('plain_password');
@@ -208,11 +218,20 @@ class VerificationController extends Controller
             AuditLogger::log("User {$user->email} completed registration OTP verification via {$otp->channel}");
             return redirect()->route('dashboard')->with('success', 'Your account has been verified!');
         } else {
-            // Login flow - MFA verification
-            session(['mfa_verified' => true]);
+            // Login flow - MFA verification OR admin-created user verification
+            if (is_null($user->email_verified_at)) {
+                // Admin-created user completing first-time verification
+                $user->update(['email_verified_at' => now()]);
+                AuditLogger::log("Admin-created user {$user->email} completed first-time OTP verification via {$otp->channel}");
+                $message = 'Your account has been verified! Welcome to GoalDocs.';
+            } else {
+                // Regular MFA verification for already verified users
+                AuditLogger::log("User {$user->email} completed MFA verification via {$otp->channel}");
+                $message = 'Multi-factor authentication successful!';
+            }
             
-            AuditLogger::log("User {$user->email} completed MFA verification via {$otp->channel}");
-            return redirect()->route('dashboard')->with('success', 'Multi-factor authentication successful!');
+            session(['mfa_verified' => true]);
+            return redirect()->route('dashboard')->with('success', $message);
         }
     }
 

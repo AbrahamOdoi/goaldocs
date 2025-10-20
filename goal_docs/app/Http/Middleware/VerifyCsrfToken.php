@@ -12,7 +12,7 @@ class VerifyCsrfToken extends Middleware
      * @var array<int, string>
      */
     protected $except = [
-        'login',
+        // Remove login from exceptions to enable CSRF protection
     ];
 
     /**
@@ -29,15 +29,21 @@ class VerifyCsrfToken extends Middleware
         try {
             return parent::handle($request, $next);
         } catch (\Illuminate\Session\TokenMismatchException $e) {
-            // If it's a login request and we get a token mismatch, redirect to login with error
-            if ($request->is('login') && $request->isMethod('post')) {
-                return redirect()->route('login')
-                    ->withErrors(['email' => 'Your session has expired. Please try logging in again.'])
-                    ->withInput($request->except('password', '_token'));
+            // Gracefully recover from token mismatches: reset session + token and redirect back
+            try {
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+            } catch (\Throwable $t) {
+                // ignore
             }
-            
-            // For other requests, throw the exception as normal
-            throw $e;
+
+            // Prefer redirecting back to the previous page if possible
+            $fallback = route('login');
+            $target = url()->previous() ?: $fallback;
+
+            return redirect($target)
+                ->withErrors(['csrf' => 'Your session expired. Please try that action again.'])
+                ->withInput($request->except(['password', '_token']));
         }
     }
 }

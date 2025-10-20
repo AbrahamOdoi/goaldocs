@@ -1,0 +1,54 @@
+/* Layout Fix for Sidebar Overlap Issue */
+/* This file fixes the sidebar overlapping main content issue */
+
+/* Force the main content area to account for sidebar width */
+.layout-wrapper.layout-content-navbar .layout-page {
+    margin-left: 280px !important;
+    width: calc(100% - 280px) !important;
+    position: relative !important;
+}
+
+.layout-menu-fixed .layout-page {
+    margin-left: 280px !important;
+    width: calc(100% - 280px) !important;
+    position: relative !important;
+}
+
+/* Alternative approach - target content wrapper */
+.layout-wrapper .content-wrapper {
+    margin-left: 280px !important;
+    width: calc(100% - 280px) !important;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 1199.98px) {
+    .layout-wrapper.layout-content-navbar .layout-page {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+    
+    .layout-menu-fixed .layout-page {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+    
+    .layout-wrapper .content-wrapper {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+}
+
+/* Ensure sidebar is properly positioned */
+.layout-menu {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    height: 100vh !important;
+    width: 280px !important;
+    z-index: 1000 !important;
+}
+
+/* Fix for navbar positioning */
+.layout-navbar-fixed .layout-page {
+    padding-top: 64px !important;
+}

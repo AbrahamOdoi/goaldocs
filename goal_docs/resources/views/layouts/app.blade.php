@@ -21,9 +21,12 @@
   <link rel="stylesheet" href="{{ asset('assets/vendor/fonts/flag-icons.css') }}" />
 
   <!-- Core CSS -->
-  <link rel="stylesheet" href="{{ asset('assets/vendor/css/rtl/core.css') }}?v=1.0.2" class="template-customizer-core-css" />
+  <link rel="stylesheet" href="{{ asset('assets/vendor/css/rtl/core.css') }}?v={{ time() }}" class="template-customizer-core-css" />
+  <link rel="stylesheet" href="{{ asset('assets/vendor/css/rtl/theme-default.css') }}?v={{ time() }}" class="template-customizer-theme-css" />
+<link rel="stylesheet" href="{{ asset('assets/css/demo.css') }}?v={{ time() }}" />
+    <!-- <link rel="stylesheet" href="{{ asset('assets/vendor/css/rtl/core.css') }}?v=1.0.2" class="template-customizer-core-css" /> 
   <link rel="stylesheet" href="{{ asset('assets/vendor/css/rtl/theme-default.css') }}?v=1.0.2" class="template-customizer-theme-css" />
-  <link rel="stylesheet" href="{{ asset('assets/css/demo.css') }}?v=1.0.2" />
+  <link rel="stylesheet" href="{{ asset('assets/css/demo.css') }}?v=1.0.2" />-->
 
   <!-- Vendors CSS -->
   <link rel="stylesheet" href="{{ asset('assets/vendor/libs/node-waves/node-waves.css') }}" />
@@ -32,9 +35,39 @@
   <link rel="stylesheet" href="{{ asset('assets/vendor/libs/apex-charts/apex-charts.css') }}" />
 
   @stack('styles')
+  
+  <!-- Global Layout Fix -->
+  <style>
+  /* Fix sidebar layout issue - ensure main content doesn't overlap with sidebar */
+  .layout-wrapper.layout-content-navbar .layout-page {
+      margin-left: 280px !important; /* Account for sidebar width */
+      width: calc(100% - 280px) !important;
+  }
+
+  /* Ensure proper positioning for fixed sidebar layout */
+  .layout-menu-fixed .layout-page {
+      margin-left: 280px !important;
+      width: calc(100% - 280px) !important;
+  }
+
+  /* Fix for mobile responsiveness */
+  @media (max-width: 1199.98px) {
+      .layout-wrapper.layout-content-navbar .layout-page {
+          margin-left: 0 !important;
+          width: 100% !important;
+      }
+      
+      .layout-menu-fixed .layout-page {
+          margin-left: 0 !important;
+          width: 100% !important;
+      }
+  }
+  </style>
 
   <!-- Helpers -->
-  <script src="{{ asset('assets/vendor/js/helpers.js') }}?v=1.0.1"></script>
+  <script src="{{ asset('assets/vendor/js/helpers.js') }}?v={{ time() }}"></script>
+
+    <!-- <script src="{{ asset('assets/vendor/js/helpers.js') }}?v=1.0.1"></script>-->
   <script src="{{ asset('assets/vendor/js/template-customizer.js') }}"></script>
   <script src="{{ asset('assets/js/config.js') }}"></script>
 </head>
@@ -93,14 +126,16 @@
   <script src="{{ asset('assets/vendor/libs/hammer/hammer.js') }}"></script>
   <script src="{{ asset('assets/vendor/libs/i18n/i18n.js') }}"></script>
   <script src="{{ asset('assets/vendor/libs/typeahead-js/typeahead.js') }}"></script>
-  <script src="{{ asset('assets/vendor/js/menu.js') }}"></script>
+  <script src="{{ asset('assets/vendor/js/menu.js') }}?v={{ time() }}"></script>
 
   <!-- Vendors JS -->
   <script src="{{ asset('assets/vendor/libs/moment/moment.js') }}"></script>
   <script src="{{ asset('assets/vendor/libs/apex-charts/apexcharts.js') }}"></script>
 
   <!-- Main JS -->
-  <script src="{{ asset('assets/js/main.js') }}?v=1.0.1"></script>
+  <!--script src="{{ asset('assets/js/main.js') }}?v=1.0.1"></script>-->
+  <script src="{{ asset('assets/js/main.js') }}?v={{ time() }}"></script>
+
 
   <!-- Simple cache clearing on logout -->
   <script>

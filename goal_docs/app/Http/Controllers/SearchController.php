@@ -72,6 +72,73 @@ class SearchController extends Controller
     }
 
     /**
+     * Show the search files page (replicated from files page structure)
+     */
+    public function searchFiles(Request $request)
+    {
+        $user = Auth::user();
+        $query = $request->get('q', '');
+        $filters = $request->only(['type', 'date_from', 'date_to', 'size_min', 'size_max', 'tags']);
+        
+        // Get folders and files (similar to files page)
+        $folders = collect();
+        $files = collect();
+        
+        if ($query || !empty(array_filter($filters))) {
+            $results = $this->performSearch($user, $query, $filters);
+            $folders = $results->where('resource_type', 'folder');
+            $files = $results->where('resource_type', 'file');
+        } else {
+            // If no search query, show all files and folders (like files page)
+            $folders = \App\Models\Folder::forOrganization($user->type, $user->type_name)
+                ->active()
+                ->with(['parent', 'creator'])
+                ->orderBy('name')
+                ->get();
+                
+            $files = \App\Models\File::forOrganization($user->type, $user->type_name)
+                ->active()
+                ->with(['folder', 'tags', 'uploader'])
+                ->orderBy('name')
+                ->get();
+        }
+
+        // Get recent activities
+        $recentActivities = RecentActivity::getRecentForUser(
+            $user->id, 
+            $user->type, 
+            $user->type_name, 
+            10
+        );
+
+        // Get user's favorites
+        $favorites = UserFavorite::forUser($user->id)
+            ->forOrganization($user->type, $user->type_name)
+            ->with(['file', 'folder'])
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+
+        // Get popular tags
+        $popularTags = FileTag::getPopularTags($user->type, $user->type_name, 15);
+
+        // Log search activity if there's a query or filters
+        if ($query || !empty(array_filter($filters))) {
+            RecentActivity::log(
+                $user->id,
+                $user->type,
+                $user->type_name,
+                'view',
+                null,
+                null,
+                ['search_query' => $query, 'filters' => $filters, 'results_count' => $folders->count() + $files->count()]
+            );
+        }
+
+        return view('search.search-files', compact('folders', 'files', 'query', 'filters', 'recentActivities', 'favorites', 'popularTags'));
+    }
+
+    /**
      * Perform search across files and folders
      */
     private function performSearch($user, $query, $filters)

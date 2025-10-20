@@ -1,6 +1,6 @@
-const CACHE_NAME = 'goaldocs-v1.0.4';
-const STATIC_CACHE_NAME = 'goaldocs-static-v1.0.4';
-const DYNAMIC_CACHE_NAME = 'goaldocs-dynamic-v1.0.4';
+const CACHE_NAME = 'goaldocs-v1.0.5';
+const STATIC_CACHE_NAME = 'goaldocs-static-v1.0.5';
+const DYNAMIC_CACHE_NAME = 'goaldocs-dynamic-v1.0.5';
 
 // Static assets to cache
 const STATIC_ASSETS = [
@@ -103,18 +103,18 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(request)
       .then((cachedResponse) => {
-        // Special handling for files page - always fetch fresh
-        if (url.pathname === '/files') {
-          console.log('Service Worker: Files page - fetching fresh content');
+        // Special handling for files and hierarchy pages - always fetch fresh
+        if (url.pathname === '/files' || url.pathname === '/hierarchy' || url.pathname.startsWith('/hierarchy/')) {
+          console.log('Service Worker: Dynamic page - fetching fresh content:', url.pathname);
           return fetch(request)
             .then((response) => {
-              // Don't cache the files page
+              // Don't cache dynamic pages
               return response;
             })
             .catch(() => {
               // Fallback to cached version if network fails
               if (cachedResponse) {
-                console.log('Service Worker: Files page - serving from cache as fallback');
+                console.log('Service Worker: Dynamic page - serving from cache as fallback:', url.pathname);
                 return cachedResponse;
               }
               return new Response('Network error', { status: 503 });
@@ -158,13 +158,22 @@ self.addEventListener('fetch', (event) => {
 
 // Network first strategy with cache fallback
 function networkFirstStrategy(request) {
+  const url = new URL(request.url);
+  
   return fetch(request)
     .then((response) => {
       // Clone the response
       const responseClone = response.clone();
       
-      // Cache successful responses
-      if (response.status === 200) {
+      // Don't cache dynamic pages (files, hierarchy, users, etc.)
+      const isDynamicPage = url.pathname === '/files' || 
+                           url.pathname === '/hierarchy' || 
+                           url.pathname.startsWith('/hierarchy/') ||
+                           url.pathname.startsWith('/users/') ||
+                           url.pathname.startsWith('/files/');
+      
+      // Cache successful responses only for non-dynamic pages
+      if (response.status === 200 && !isDynamicPage) {
         caches.open(DYNAMIC_CACHE_NAME)
           .then((cache) => {
             cache.put(request, responseClone);
@@ -181,6 +190,8 @@ function networkFirstStrategy(request) {
 
 // Cache first strategy with network fallback
 function cacheFirstStrategy(request) {
+  const url = new URL(request.url);
+  
   return caches.match(request)
     .then((cachedResponse) => {
       if (cachedResponse) {
@@ -191,7 +202,14 @@ function cacheFirstStrategy(request) {
         .then((response) => {
           const responseClone = response.clone();
           
-          if (response.status === 200) {
+          // Don't cache dynamic pages
+          const isDynamicPage = url.pathname === '/files' || 
+                               url.pathname === '/hierarchy' || 
+                               url.pathname.startsWith('/hierarchy/') ||
+                               url.pathname.startsWith('/users/') ||
+                               url.pathname.startsWith('/files/');
+          
+          if (response.status === 200 && !isDynamicPage) {
             caches.open(DYNAMIC_CACHE_NAME)
               .then((cache) => {
                 cache.put(request, responseClone);
